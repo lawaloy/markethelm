@@ -26,9 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Publish run titles:** `publish.yml` runs now show their target in the Actions list
-  (release: `Publish v0.3.8: TestPyPI then PyPI`-style; manual: `Publish to TestPyPI only` or `Publish to PyPI only`), and the manual
-  `environment` input description says which option is the real release.
+- **Manual publish is TestPyPI-only:** A manual run of `publish.yml` has no environment choice and
+  publishes a unique dev version (`scripts/dev_version.py`, next patch plus `.dev<run number>`, for
+  example `0.3.8.dev42`) to TestPyPI, so each test adds a new version. PyPI is reached only by a
+  release from Create Release, including urgent fixes, which still go TestPyPI first. Run titles read
+  `Publish v0.3.8: TestPyPI then PyPI` for releases and `Publish to TestPyPI only` for manual runs.
 - **Release publishing:** Releases publish to TestPyPI first; PyPI publishes only after
   the TestPyPI job succeeds.
 - **Renamed to `markethelm`** (repository `lawaloy/markethelm`): Python distribution, console
