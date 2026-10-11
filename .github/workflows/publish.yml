@@ -1,12 +1,16 @@
 name: Publish to PyPI
 
+# Run title shows the target in the Actions list. Keep `name:` above unchanged:
+# post-release-sync.yml triggers on it.
+run-name: "${{ github.event_name == 'release' && format('Publish {0}: TestPyPI, then PyPI', github.ref_name) || (inputs.environment == 'pypi' && 'Manual publish: PyPI only' || 'Manual publish: TestPyPI only') }}"
+
 on:
   release:
     types: [published]
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Publish to'
+        description: 'Publish to (testpypi = safe test upload only; pypi = REAL release to PyPI)'
         required: true
         type: choice
         options:

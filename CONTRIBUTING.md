@@ -55,7 +55,7 @@ python scripts/version_sync.py sync
 python scripts/version_sync.py check
 ```
 
-The **CI** job runs **`check`** on every PR (read-only; it does **not** auto-fix so the PR stays an honest diff). **Publish to PyPI** sets `setup.cfg` from the **release tag** on the runner, then runs **`sync`** in the build job before **`npm ci`** so the wheel and UI metadata match that tag (still not committed to `main` from CI). Publishing a release goes to **TestPyPI** first (`testpypi` environment); only after that job succeeds does it publish to **PyPI**. A manual run can target either one. After a successful release publish, **Post-release sync to main** (separate workflow) may open a PR to align `main` with that tag.
+The **CI** job runs **`check`** on every PR (read-only; it does **not** auto-fix so the PR stays an honest diff). **Publish to PyPI** sets `setup.cfg` from the **release tag** on the runner, then runs **`sync`** in the build job before **`npm ci`** so the wheel and UI metadata match that tag (still not committed to `main` from CI). Publishing a release goes to **TestPyPI** first (`testpypi` environment); only after that job succeeds does it publish to **PyPI**. A manual run can target either one, and the run title in the Actions list shows which (`Manual publish: TestPyPI only` or `Manual publish: PyPI only`). After a successful release publish, **Post-release sync to main** (separate workflow) may open a PR to align `main` with that tag.
 
 </details>
 
