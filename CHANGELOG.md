@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Release publishing:** Releases publish to TestPyPI first; PyPI publishes only after
+  the TestPyPI job succeeds.
 - **Renamed to `markethelm`** (repository `lawaloy/markethelm`): Python distribution, console
   scripts (`markethelm`, `markethelm-web`), environment variables (`MARKETHELM_*`, including `MARKETHELM_CONFIG`, for the config path override), user config
   folder (`~/.markethelm`), log file prefix, Docker/Kubernetes names, npm package names and docs.

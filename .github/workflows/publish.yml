@@ -109,14 +109,16 @@ jobs:
           name: dist
           path: dist/
 
-  publish:
+  publish_testpypi:
+    name: Publish to TestPyPI
     needs: build
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'testpypi')
     runs-on: ubuntu-latest
     permissions:
       id-token: write # Required for trusted publishing
     environment:
-      name: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'pypi' }}
-      url: ${{ github.event_name == 'workflow_dispatch' && inputs.environment == 'testpypi' && 'https://test.pypi.org/project/markethelm/' || 'https://pypi.org/project/markethelm/' }}
+      name: testpypi
+      url: https://test.pypi.org/project/markethelm/
 
     steps:
       - name: Download artifacts
@@ -126,15 +128,36 @@ jobs:
           path: dist/
 
       - name: Publish to Test PyPI
-        if: github.event_name == 'workflow_dispatch' && inputs.environment == 'testpypi'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           skip-existing: true
 
+  # Releases publish to PyPI only after TestPyPI succeeds. A manual "pypi" run skips
+  # the TestPyPI job, so `!cancelled()` lets this job run despite the skipped need.
+  publish_pypi:
+    name: Publish to PyPI
+    needs: [build, publish_testpypi]
+    if: >-
+      ${{ !cancelled() && needs.build.result == 'success' && (
+      (github.event_name == 'release' && needs.publish_testpypi.result == 'success') ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'pypi') ) }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for trusted publishing
+    environment:
+      name: pypi
+      url: https://pypi.org/project/markethelm/
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
       - name: Publish to PyPI
-        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'pypi')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
@@ -142,7 +165,7 @@ jobs:
   # Tiny artifact so "Post-release sync to main" (workflow_run) knows the release tag.
   export_release_tag:
     name: Export release tag for post-release sync
-    needs: publish
+    needs: publish_pypi
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
