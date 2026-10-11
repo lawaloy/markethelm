@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **README on PyPI:** Use absolute GitHub links and raw image URLs in the README so
+  the package description renders on PyPI and TestPyPI.
 - **RSI history after CSV cutover:** `load_symbol_closes` reads durable
   `market_bars` when Finnhub candles are missing, so RSI and compound alerts
   still evaluate from saved quotes instead of a dead `daily_data_*.csv` path.
