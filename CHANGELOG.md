@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Publish run titles:** `publish.yml` runs now show their target in the Actions list
-  (release: TestPyPI then PyPI; manual: TestPyPI only or PyPI only), and the manual
+  (release: `Publish v0.3.8: TestPyPI then PyPI`-style; manual: `Publish to TestPyPI only` or `Publish to PyPI only`), and the manual
   `environment` input description says which option is the real release.
 - **Release publishing:** Releases publish to TestPyPI first; PyPI publishes only after
   the TestPyPI job succeeds.
