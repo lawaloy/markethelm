@@ -1,25 +1,25 @@
 <div align="center">
-  <img src="docs/assets/readme/markethelm-mark.png" alt="MarketHelm ship's helm and market chart logo" width="180">
+  <img src="https://raw.githubusercontent.com/lawaloy/markethelm/main/docs/assets/readme/markethelm-mark.png" alt="MarketHelm ship's helm and market chart logo" width="180">
   <h1>MarketHelm</h1>
   <p><strong>Stock-market monitoring, projections, and alerts—from CLI to web dashboard.</strong></p>
   <p>
     <a href="https://github.com/lawaloy/markethelm/actions/workflows/python-app.yml"><img src="https://github.com/lawaloy/markethelm/actions/workflows/python-app.yml/badge.svg?branch=main" alt="CI status"></a>
     <a href="https://pypi.org/project/markethelm/"><img src="https://img.shields.io/pypi/v/markethelm?logo=pypi&logoColor=white" alt="PyPI version"></a>
     <a href="https://pypi.org/project/markethelm/"><img src="https://img.shields.io/pypi/pyversions/markethelm?logo=python&logoColor=white" alt="Supported Python versions"></a>
-    <a href="LICENSE"><img src="https://img.shields.io/github/license/lawaloy/markethelm" alt="MIT license"></a>
-    <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="Pull requests welcome"></a>
+    <a href="https://github.com/lawaloy/markethelm/blob/main/LICENSE"><img src="https://img.shields.io/github/license/lawaloy/markethelm" alt="MIT license"></a>
+    <a href="https://github.com/lawaloy/markethelm/blob/main/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="Pull requests welcome"></a>
   </p>
   <p>
     <a href="#quick-start">Quick start</a> ·
-    <a href="docs/README.md">Documentation</a> ·
-    <a href="docs/PROJECT_STATUS.md">Project status</a> ·
-    <a href="CONTRIBUTING.md">Contributing</a>
+    <a href="https://github.com/lawaloy/markethelm/blob/main/docs/README.md">Documentation</a> ·
+    <a href="https://github.com/lawaloy/markethelm/blob/main/docs/PROJECT_STATUS.md">Project status</a> ·
+    <a href="https://github.com/lawaloy/markethelm/blob/main/CONTRIBUTING.md">Contributing</a>
   </p>
 </div>
 
 MarketHelm screens major indices, fetches market data, produces five-session
 projections, records results, and can deliver configured alerts. Broker
-execution is not implemented; see [Project status](docs/PROJECT_STATUS.md) for
+execution is not implemented; see [Project status](https://github.com/lawaloy/markethelm/blob/main/docs/PROJECT_STATUS.md) for
 the evidence-based feature matrix and current priorities.
 
 ## Product tour
@@ -30,10 +30,10 @@ Helmtower lets operators create price, RSI, or combined watches and route
 notifications through the configured email, Discord, or Slack channels.
 
 <p align="center">
-  <a href="docs/assets/readme/markethelm-hero.png">
+  <a href="https://raw.githubusercontent.com/lawaloy/markethelm/main/docs/assets/readme/markethelm-hero.png">
     <picture>
-      <source srcset="docs/assets/readme/markethelm-hero-loop.webp" type="image/webp">
-      <img src="docs/assets/readme/markethelm-hero.png" alt="MarketHelm dashboard with a market brief, biggest gainers and decliners, and a Helmtower price alert for Apple" width="900">
+      <source srcset="https://raw.githubusercontent.com/lawaloy/markethelm/main/docs/assets/readme/markethelm-hero-loop.webp" type="image/webp">
+      <img src="https://raw.githubusercontent.com/lawaloy/markethelm/main/docs/assets/readme/markethelm-hero.png" alt="MarketHelm dashboard with a market brief, biggest gainers and decliners, and a Helmtower price alert for Apple" width="900">
     </picture>
   </a>
 </p>
@@ -48,13 +48,13 @@ notifications through the configured email, Discord, or Slack channels.
 | Hosted staging   | `docker-compose.staging.yml`      | PostgreSQL, API/compiled UI, and alert worker   | The hostname configured by the operator |
 
 The production web image does **not** require a separately hosted frontend.
-[`Dockerfile.web`](Dockerfile.web) builds React and copies it into the FastAPI
+[`Dockerfile.web`](https://github.com/lawaloy/markethelm/blob/main/Dockerfile.web) builds React and copies it into the FastAPI
 image, which serves both the UI and `/api/*` on port 8000.
 
 The repository currently provides portable deployment artifacts, not a live
 public MarketHelm URL or a selected cloud provider. Provider selection, DNS/TLS,
 managed PostgreSQL, email delivery, and external monitoring remain operator
-sign-off tasks in [Deployment and persistence](docs/DEPLOYMENT.md#external-staging-sign-off).
+sign-off tasks in [Deployment and persistence](https://github.com/lawaloy/markethelm/blob/main/docs/DEPLOYMENT.md#external-staging-sign-off).
 
 ## Quick start
 
@@ -108,7 +108,7 @@ markethelm-web
 ```
 
 Open <http://localhost:8000>. For frontend hot reload instead of an integrated
-build, use the focused [dashboard development guide](dashboard/README.md).
+build, use the focused [dashboard development guide](https://github.com/lawaloy/markethelm/blob/main/dashboard/README.md).
 
 ### Fetch market data
 
@@ -173,19 +173,19 @@ absolute persistent path when hosting the application.
 
 ## Documentation
 
-Use the [documentation index](docs/README.md) to find the single authoritative
+Use the [documentation index](https://github.com/lawaloy/markethelm/blob/main/docs/README.md) to find the single authoritative
 guide for each topic:
 
 | Topic                                      | Guide                                      |
 | ------------------------------------------ | ------------------------------------------ |
-| Commands and output files                  | [Usage](docs/USAGE.md)                     |
-| Settings and providers                     | [Configuration](docs/CONFIGURATION.md)     |
-| Hosting, persistence, workers, and secrets | [Deployment](docs/DEPLOYMENT.md)           |
-| Components and operating modes             | [Architecture](docs/ARCHITECTURE.md)       |
-| Current capabilities and roadmap           | [Project status](docs/PROJECT_STATUS.md)   |
-| Common failures                            | [Troubleshooting](docs/TROUBLESHOOTING.md) |
-| Development and pull requests              | [Contributing](CONTRIBUTING.md)            |
+| Commands and output files                  | [Usage](https://github.com/lawaloy/markethelm/blob/main/docs/USAGE.md)                     |
+| Settings and providers                     | [Configuration](https://github.com/lawaloy/markethelm/blob/main/docs/CONFIGURATION.md)     |
+| Hosting, persistence, workers, and secrets | [Deployment](https://github.com/lawaloy/markethelm/blob/main/docs/DEPLOYMENT.md)           |
+| Components and operating modes             | [Architecture](https://github.com/lawaloy/markethelm/blob/main/docs/ARCHITECTURE.md)       |
+| Current capabilities and roadmap           | [Project status](https://github.com/lawaloy/markethelm/blob/main/docs/PROJECT_STATUS.md)   |
+| Common failures                            | [Troubleshooting](https://github.com/lawaloy/markethelm/blob/main/docs/TROUBLESHOOTING.md) |
+| Development and pull requests              | [Contributing](https://github.com/lawaloy/markethelm/blob/main/CONTRIBUTING.md)            |
 
 ## License
 
-MarketHelm is available under the [MIT License](LICENSE).
+MarketHelm is available under the [MIT License](https://github.com/lawaloy/markethelm/blob/main/LICENSE).
