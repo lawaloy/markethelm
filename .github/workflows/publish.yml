@@ -2,20 +2,12 @@ name: Publish to PyPI
 
 # Run title shows the target in the Actions list. Keep `name:` above unchanged:
 # post-release-sync.yml triggers on it.
-run-name: "Publish ${{ github.event_name == 'release' && format('{0}: TestPyPI then PyPI', github.ref_name) || (inputs.environment == 'pypi' && 'to PyPI only' || 'to TestPyPI only') }}"
+run-name: "Publish ${{ github.event_name == 'release' && format('{0}: TestPyPI then PyPI', github.ref_name) || 'to TestPyPI only' }}"
 
 on:
   release:
     types: [published]
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Publish to (testpypi = safe test upload only; pypi = REAL release to PyPI)'
-        required: true
-        type: choice
-        options:
-          - testpypi
-          - pypi
+  workflow_dispatch: # manual runs publish a dev version to TestPyPI only
 
 permissions:
   contents: read
@@ -83,6 +75,12 @@ jobs:
       - name: Sync dashboard files from setup.cfg version
         run: python scripts/version_sync.py sync
 
+      # Manual runs: unique dev version (next patch + .dev<run number>) so each test upload is a
+      # new TestPyPI version. After sync on purpose: dashboard files keep the plain X.Y.Z.
+      - name: Set unique dev version for manual run
+        if: github.event_name == 'workflow_dispatch'
+        run: python scripts/dev_version.py --run-number "${{ github.run_number }}"
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -116,7 +114,6 @@ jobs:
   publish_testpypi:
     name: Publish to TestPyPI
     needs: build
-    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'testpypi')
     runs-on: ubuntu-latest
     permissions:
       id-token: write # Required for trusted publishing
@@ -138,15 +135,11 @@ jobs:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           skip-existing: true
 
-  # Releases publish to PyPI only after TestPyPI succeeds. A manual "pypi" run skips
-  # the TestPyPI job, so `!cancelled()` lets this job run despite the skipped need.
+  # PyPI is reachable only through a published release, and only after TestPyPI succeeds.
   publish_pypi:
     name: Publish to PyPI
     needs: [build, publish_testpypi]
-    if: >-
-      ${{ !cancelled() && needs.build.result == 'success' && (
-      (github.event_name == 'release' && needs.publish_testpypi.result == 'success') ||
-      (github.event_name == 'workflow_dispatch' && inputs.environment == 'pypi') ) }}
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
       id-token: write # Required for trusted publishing
