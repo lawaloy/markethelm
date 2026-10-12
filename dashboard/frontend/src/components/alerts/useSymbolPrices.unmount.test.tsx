@@ -14,8 +14,14 @@ vi.mock('../../services/api', () => ({
 import api, { alertsApi } from '../../services/api';
 
 function Harness({ symbols = ['AAPL'] }: { symbols?: string[] }) {
-  const { apiReady, symbolPrices, fetchPricesFor, pricingPending, quotesUnavailable } =
-    useSymbolPrices();
+  const {
+    apiReady,
+    symbolPrices,
+    fetchPricesFor,
+    pricingPending,
+    quotesUnavailable,
+    attemptedPrices,
+  } = useSymbolPrices();
 
   return (
     <div>
@@ -23,6 +29,7 @@ function Harness({ symbols = ['AAPL'] }: { symbols?: string[] }) {
       <span data-testid="unavailable">{quotesUnavailable ? 'yes' : 'no'}</span>
       <span data-testid="prices">{JSON.stringify(symbolPrices)}</span>
       <span data-testid="pending">{pricingPending.size}</span>
+      <span data-testid="attempted">{[...attemptedPrices].sort().join(',')}</span>
       <button
         type="button"
         data-testid="fetch"
@@ -90,6 +97,7 @@ describe('useSymbolPrices unmount and dirty quotes', () => {
     });
     expect(JSON.parse(screen.getByTestId('prices').textContent || '{}')).toEqual({});
     expect(screen.getByTestId('pending').textContent).toBe('0');
+    expect(screen.getByTestId('attempted').textContent).toBe('');
   });
 
   it('drops non-finite quote prices and cools the symbol down', async () => {

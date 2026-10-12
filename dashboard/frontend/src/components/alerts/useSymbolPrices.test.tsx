@@ -312,6 +312,9 @@ describe('useSymbolPrices', () => {
       expect(screen.getByTestId('unavailable').textContent).toBe('yes');
     });
     expect(JSON.parse(screen.getByTestId('prices').textContent || '{}')).toEqual({});
+    await waitFor(() => {
+      expect(screen.getByTestId('attempted').textContent).toBe('AAPL,MSFT');
+    });
   });
 
   it('does not lock quotesUnavailable on a 429 so a later fetch can retry', async () => {
