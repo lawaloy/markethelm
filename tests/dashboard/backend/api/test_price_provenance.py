@@ -37,6 +37,35 @@ def test_market_overview_exposes_quote_time_range(tmp_path, monkeypatch):
     assert response.json()["quoteTimeEnd"] == "2026-10-02T15:08:00+00:00"
 
 
+def test_market_overview_omits_quote_time_range_when_any_bar_lacks_tz(tmp_path, monkeypatch):
+    """Headline freshness is all-or-nothing: one naive/missing stamp blanks the range."""
+    monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
+    upsert_market_bars(
+        [
+            {
+                "symbol": "AAPL",
+                "close": 150,
+                "change_percent": 1,
+                "quote_timestamp": "2026-10-02T15:07:00+00:00",
+            },
+            {
+                "symbol": "MSFT",
+                "close": 350,
+                "change_percent": -1,
+                "quote_timestamp": "2026-10-02T15:08:00",
+            },
+        ],
+        "2026-10-02",
+        data_dir=tmp_path,
+    )
+    with patch("dashboard.backend.api.market.get_data_loader", return_value=DataLoader(tmp_path)):
+        response = TestClient(app).get("/api/market/overview")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["quoteTimeStart"] is None
+    assert payload["quoteTimeEnd"] is None
+
+
 def test_alert_catalog_and_quote_return_newest_provider_time(tmp_path, monkeypatch):
     monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
     upsert_market_bars(

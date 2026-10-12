@@ -209,6 +209,36 @@ def test_latest_saved_quote_uses_provider_time_across_weekend_snapshots(tmp_path
     }
 
 
+def test_latest_saved_quote_prefers_provider_time_over_newer_storage_date(tmp_path):
+    """A later snapshot without a provider timestamp must not beat an older quote."""
+    upsert_market_bars(
+        [{"symbol": "AAPL", "close": 100, "quote_timestamp": "2026-10-02T20:00:00+00:00"}],
+        "2026-10-02",
+        data_dir=tmp_path,
+    )
+    upsert_market_bars(
+        [{"symbol": "AAPL", "close": 99}],
+        "2026-10-03",
+        data_dir=tmp_path,
+    )
+    assert latest_saved_quotes(data_dir=tmp_path)["AAPL"] == {
+        "price": 100.0,
+        "as_of": "2026-10-02T20:00:00+00:00",
+    }
+
+
+def test_latest_saved_quote_invalid_provider_time_falls_back_to_trade_date(tmp_path):
+    upsert_market_bars(
+        [{"symbol": "AAPL", "close": 100, "quote_timestamp": "not-iso"}],
+        "2026-10-02",
+        data_dir=tmp_path,
+    )
+    assert latest_saved_quotes(data_dir=tmp_path)["AAPL"] == {
+        "price": 100.0,
+        "as_of": "2026-10-02",
+    }
+
+
 @patch("src.services.data_fetcher.StockDataFetcher")
 @patch("src.alerts.symbol_prices.prices_from_saved_daily_data", return_value={})
 def test_resolve_symbol_prices_skips_non_finite_live_quotes(_mock_saved, mock_fetcher_cls):
