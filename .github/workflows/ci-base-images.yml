@@ -2,7 +2,7 @@ name: Refresh CI base images
 
 on:
   push:
-    branches: [main, fix/ci-authenticated-images]
+    branches: [main]
     paths: [.github/workflows/ci-base-images.yml]
   workflow_dispatch:
   schedule:
