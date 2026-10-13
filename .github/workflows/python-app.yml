@@ -54,9 +54,15 @@ jobs:
   postgres:
     name: PostgreSQL integration
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     services:
       postgres:
-        image: public.ecr.aws/docker/library/postgres:16-alpine
+        image: ghcr.io/${{ github.repository_owner }}/markethelm-ci-postgres:16-alpine
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
         env:
           POSTGRES_DB: markethelm
           POSTGRES_USER: markethelm
