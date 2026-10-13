@@ -23,9 +23,9 @@ jobs:
       POSTGRES_PASSWORD: local-ci-postgres-only
       MARKETHELM_ENV_FILE: ${{ github.workspace }}/.env.staging.ci
       MARKETHELM_PORT: '8012'
-      MARKETHELM_POSTGRES_IMAGE: ghcr.io/lawaloy/markethelm-ci-postgres:16-alpine
-      MARKETHELM_NODE_BASE_IMAGE: ghcr.io/lawaloy/markethelm-ci-node:22.23.2-alpine
-      MARKETHELM_PYTHON_BASE_IMAGE: ghcr.io/lawaloy/markethelm-ci-python:3.12-slim
+      MARKETHELM_POSTGRES_IMAGE: ghcr.io/${{ github.repository_owner }}/markethelm-ci-postgres:16-alpine
+      MARKETHELM_NODE_BASE_IMAGE: ghcr.io/${{ github.repository_owner }}/markethelm-ci-node:22.23.2-alpine
+      MARKETHELM_PYTHON_BASE_IMAGE: ghcr.io/${{ github.repository_owner }}/markethelm-ci-python:3.12-slim
     steps:
       - uses: actions/checkout@v4
 

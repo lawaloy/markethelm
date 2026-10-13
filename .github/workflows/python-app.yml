@@ -59,7 +59,7 @@ jobs:
       packages: read
     services:
       postgres:
-        image: ghcr.io/lawaloy/markethelm-ci-postgres:16-alpine
+        image: ghcr.io/${{ github.repository_owner }}/markethelm-ci-postgres:16-alpine
         credentials:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
