@@ -3,7 +3,6 @@ Stocks API endpoints
 """
 
 import math
-from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
@@ -17,6 +16,7 @@ from dashboard.backend.models.stock import (
     TechnicalData,
 )
 from dashboard.backend.services.data_loader import get_data_loader
+from src.analysis.market_calendar import projection_target_date
 from src.utils.tickers import normalize_ticker
 
 router = APIRouter()
@@ -130,8 +130,7 @@ async def get_stock_detail(symbol: str = Path(..., description="Stock symbol")):
                     and expected_change is not None
                     and confidence_f is not None
                 ):
-                    proj_date = datetime.strptime(date, "%Y-%m-%d")
-                    target_date = (proj_date + timedelta(days=5)).strftime("%Y-%m-%d")
+                    target_date = projection_target_date(proj_row.to_dict(), date).isoformat()
 
                     projection_data = ProjectionData(
                         targetDate=target_date,

@@ -737,7 +737,7 @@ class TestProjectionsAPI:
         assert r.status_code == 200
         data = r.json()
         assert data["date"] == "2026-01-15"
-        assert data["targetDate"] == "2026-01-20"
+        assert data["targetDate"] == "2026-01-23"
         assert data["totalProjections"] == 4
         assert data["sentiment"] == "Bullish"
         assert data["recommendations"]["STRONG_BUY"] == 2
@@ -763,6 +763,56 @@ class TestProjectionsAPI:
         assert by_symbol["AAPL"]["currentPrice"] == 150.0
         assert by_symbol["ORPHAN"]["currentPrice"] == 0
         assert by_symbol["ORPHAN"]["volume"] == 0
+
+
+@pytest.mark.parametrize("endpoint", ["/api/projections/summary", "/api/stocks/AAPL"])
+@pytest.mark.parametrize(
+    ("run_date", "metadata", "expected_target"),
+    [
+        ("2026-01-15", {}, "2026-01-23"),
+        ("2026-07-02", {}, "2026-07-10"),
+        ("2026-07-06", {"generated_at": "2026-07-06T12:00:00+00:00"}, "2026-07-10"),
+        ("2026-07-06", {"generated_at": "2026-07-06T15:00:00+00:00"}, "2026-07-10"),
+        ("2026-07-06", {"generated_at": "2026-07-06T21:00:00+00:00"}, "2026-07-13"),
+        (
+            "2026-07-06",
+            {
+                "projection_date": "2026-07-10",
+                "generated_at": "2026-07-06T21:00:00+00:00",
+            },
+            "2026-07-10",
+        ),
+    ],
+)
+def test_projection_endpoints_preserve_trading_session_targets(
+    client, temp_data_dir, endpoint, run_date, metadata, expected_target
+):
+    """Both APIs must preserve stored targets and derive legacy dates on XNYS sessions."""
+    seed_daily_bars(
+        temp_data_dir,
+        run_date,
+        [{"symbol": "AAPL", "close": 150.0, "change": 1.5, "change_percent": 1.0}],
+    )
+    seed_projections(
+        temp_data_dir,
+        run_date,
+        [
+            {
+                "symbol": "AAPL",
+                "target_mid": 160.0,
+                "confidence": 80,
+                "expected_change_percent": 2.5,
+                **metadata,
+            }
+        ],
+    )
+
+    response = client.get(endpoint)
+
+    assert response.status_code == 200
+    data = response.json()
+    projection = data["projection"] if endpoint == "/api/stocks/AAPL" else data
+    assert projection["targetDate"] == expected_target
 
 
 class TestStocksAPIEdges:
