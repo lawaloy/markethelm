@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence
 
+from src.services.api_client import FinnhubClient
 from src.utils.tickers import normalize_ticker
 
 logger = logging.getLogger(__name__)
@@ -98,11 +99,9 @@ def load_symbol_closes_from_provider(
 
     try:
         if client is None:
-            from src.services.api_client import StockAPIClient
-
-            client = StockAPIClient()
+            client = FinnhubClient()
         payload = client.get_candle_data(ticker, resolution="D", days=lookback)
-    except Exception as exc:
+    except (OSError, ValueError) as exc:
         logger.info("Provider candle history unavailable for %s: %s", ticker, exc)
         return []
 
@@ -251,7 +250,7 @@ def closes_by_symbol(
     prefer_provider: bool = True,
     client=None,
 ) -> Dict[str, List[float]]:
-    """Load history for each symbol and overlay the snapshot close when present."""
+    """Load history with one shared provider client and overlay snapshot closes."""
     latest_by_symbol: Dict[str, float] = {}
     for stock in stocks:
         if not isinstance(stock, dict):
@@ -268,6 +267,12 @@ def closes_by_symbol(
         ticker = normalize_ticker(raw_symbol)
         if not ticker or ticker in result:
             continue
+        if prefer_provider and client is None:
+            try:
+                client = FinnhubClient()
+            except (OSError, ValueError) as exc:
+                logger.info("Provider candle history unavailable: %s", exc)
+                prefer_provider = False
         history = load_symbol_closes(
             ticker,
             data_dir=data_dir,
