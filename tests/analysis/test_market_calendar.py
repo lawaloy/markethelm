@@ -7,6 +7,7 @@ import pytest
 from src.analysis.market_calendar import (
     last_completed_session,
     previous_close_session_at,
+    projection_target_date,
     trading_session_after,
     trading_session_after_timestamp,
 )
@@ -58,3 +59,17 @@ def test_horizon_must_be_positive():
 def test_unknown_calendar_has_actionable_error():
     with pytest.raises(ValueError, match="unknown or unavailable"):
         trading_session_after("2026-07-02", 5, "NOT-A-CALENDAR")
+
+
+@pytest.mark.parametrize(
+    "projection",
+    [
+        {},
+        {"projection_date": None, "generated_at": None},
+        {"projection_date": float("nan"), "generated_at": float("nan")},
+        {"projection_date": "invalid", "generated_at": "invalid"},
+        {"projection_date": "2026-02-30", "generated_at": "2026-07-04T12:00:00"},
+    ],
+)
+def test_legacy_projection_target_handles_missing_or_invalid_metadata(projection):
+    assert projection_target_date(projection, "2026-07-04") == date(2026, 7, 10)

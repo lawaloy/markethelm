@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from functools import lru_cache
-from typing import Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 import exchange_calendars as exchange_calendars
 import pandas as pd
@@ -94,3 +94,25 @@ def trading_session_after_timestamp(
     """Return a horizon measured from the last session completed at ``value``."""
     anchor = last_completed_session(value, calendar_name)
     return trading_session_after(anchor, sessions, calendar_name)
+
+
+def projection_target_date(projection: Mapping[str, Any], run_date: DateLike) -> date:
+    """Preserve a saved target, deriving missing five-session targets for legacy rows.
+
+    Timestamped rows use the same last-completed-session anchor as the projector.
+    Older rows without an aware generation timestamp use their recorded run date.
+    """
+    try:
+        return date.fromisoformat(str(projection.get("projection_date")))
+    except (TypeError, ValueError):
+        pass
+
+    try:
+        generated_at = datetime.fromisoformat(
+            str(projection.get("generated_at")).replace("Z", "+00:00")
+        )
+    except (TypeError, ValueError):
+        generated_at = None
+    if generated_at is not None and generated_at.utcoffset() is not None:
+        return trading_session_after_timestamp(generated_at)
+    return trading_session_after(run_date)

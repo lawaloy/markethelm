@@ -3,7 +3,6 @@ Projections API endpoints
 """
 
 import math
-from datetime import datetime, timedelta
 from typing import Any, Optional
 
 import pandas as pd
@@ -15,6 +14,7 @@ from dashboard.backend.models.projection import (
     ProjectionsSummary,
 )
 from dashboard.backend.services.data_loader import get_data_loader
+from src.analysis.market_calendar import projection_target_date
 from src.utils.tickers import normalize_ticker
 
 router = APIRouter()
@@ -83,9 +83,8 @@ async def get_projections_summary():
         # Load projections data
         df = loader.load_projections()
 
-        # Calculate target date (5 days from projection date)
-        proj_date = datetime.strptime(date, "%Y-%m-%d")
-        target_date = (proj_date + timedelta(days=5)).strftime("%Y-%m-%d")
+        projection = df.iloc[0].to_dict() if not df.empty else {}
+        target_date = projection_target_date(projection, date).isoformat()
 
         # Calculate statistics
         total_projections = len(df)

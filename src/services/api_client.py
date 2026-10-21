@@ -237,21 +237,20 @@ class FinnhubClient:
                         retry_after = 60
                     if retry_after < 0:
                         retry_after = 60
-                    if retry_after > MAX_RETRY_AFTER_SECONDS:
-                        retry_after = MAX_RETRY_AFTER_SECONDS
+                    retry_after = min(retry_after, MAX_RETRY_AFTER_SECONDS)
                     if attempt < max_retries - 1:
                         logger.warning(
-                            f"Rate limit exceeded (429). Waiting {retry_after} seconds..."
+                            "Rate limit exceeded (429). Waiting %s seconds...",
+                            retry_after,
                         )
                         time.sleep(retry_after)
                         # Reset rate limiter tokens after waiting
                         self.rate_limiter.tokens = self.rate_limiter.calls_per_minute
                         self.rate_limiter.last_refill = time.time()
                         continue
-                    else:
-                        raise requests.exceptions.HTTPError(
-                            f"Rate limit exceeded after {max_retries} attempts"
-                        )
+                    raise requests.exceptions.HTTPError(
+                        f"Rate limit exceeded after {max_retries} attempts"
+                    )
 
                 response.raise_for_status()
 
@@ -272,11 +271,13 @@ class FinnhubClient:
             except requests.exceptions.RequestException as e:
                 if attempt < max_retries - 1:
                     wait_time = 2**attempt  # Exponential backoff: 1s, 2s, 4s
-                    logger.debug(f"Request failed, retrying in {wait_time}s: {e}")
+                    logger.debug("Request failed, retrying in %ss: %s", wait_time, e)
                     time.sleep(wait_time)
                     continue
-                logger.error(f"API request failed after {max_retries} attempts: {e}")
+                logger.error("API request failed after %s attempts: %s", max_retries, e)
                 raise
+
+        raise requests.exceptions.RequestException(f"Request failed after {max_retries} attempts")
 
     def get_quote(self, symbol: str) -> Dict:
         """

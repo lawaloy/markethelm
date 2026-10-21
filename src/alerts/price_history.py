@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence
 
+from src.services.api_client import FinnhubClient
 from src.utils.tickers import normalize_ticker
 
 logger = logging.getLogger(__name__)
@@ -98,11 +99,9 @@ def load_symbol_closes_from_provider(
 
     try:
         if client is None:
-            from src.services.api_client import StockAPIClient
-
-            client = StockAPIClient()
+            client = FinnhubClient()
         payload = client.get_candle_data(ticker, resolution="D", days=lookback)
-    except Exception as exc:
+    except (OSError, ValueError) as exc:
         logger.info("Provider candle history unavailable for %s: %s", ticker, exc)
         return []
 
