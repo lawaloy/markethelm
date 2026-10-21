@@ -1,6 +1,9 @@
 """Close-history loader for RSI alert evaluation."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
+
+import pytest
+import requests
 
 from src.alerts.alert_rules import evaluate_rsi_threshold
 from src.alerts.price_history import (
@@ -55,19 +58,54 @@ def test_load_symbol_closes_prefers_provider_over_market_bars(tmp_path, monkeypa
     client.get_candle_data.assert_called_once()
 
 
-def test_load_symbol_closes_empty_when_provider_and_market_bars_are_empty(tmp_path, monkeypatch):
+def test_load_symbol_closes_constructs_default_finnhub_client(tmp_path, monkeypatch):
+    """The production path must construct the real client without dependency injection."""
+    monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
+    closes = [100.0 + i for i in range(20)]
+    with patch("src.alerts.price_history.FinnhubClient") as client_class:
+        client_class.return_value.get_candle_data.return_value = {"s": "ok", "c": closes}
+
+        assert load_symbol_closes("AAPL", data_dir=tmp_path) == closes
+
+    client_class.assert_called_once_with()
+    client_class.return_value.get_candle_data.assert_called_once_with(
+        "AAPL", resolution="D", days=90
+    )
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        ValueError("no key"),
+        requests.exceptions.ConnectionError("provider unavailable"),
+        requests.exceptions.Timeout("provider timed out"),
+        requests.exceptions.HTTPError("rate limited"),
+    ],
+)
+def test_load_symbol_closes_empty_when_provider_and_market_bars_are_empty(
+    tmp_path, monkeypatch, error
+):
     monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
     client = MagicMock()
-    client.get_candle_data.side_effect = RuntimeError("no key")
+    client.get_candle_data.side_effect = error
 
     assert load_symbol_closes("AAPL", data_dir=tmp_path, client=client) == []
+
+
+def test_load_symbol_closes_does_not_hide_unexpected_provider_errors(tmp_path, monkeypatch):
+    monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
+    client = MagicMock()
+    client.get_candle_data.side_effect = RuntimeError("unexpected provider bug")
+
+    with pytest.raises(RuntimeError, match="unexpected provider bug"):
+        load_symbol_closes("AAPL", data_dir=tmp_path, client=client)
 
 
 def test_rsi_rule_degrades_gracefully_without_any_history(tmp_path, monkeypatch, caplog):
     """No provider candles and no market_bars: no crash, no trigger, clear log."""
     monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
     client = MagicMock()
-    client.get_candle_data.side_effect = RuntimeError("no key")
+    client.get_candle_data.side_effect = ValueError("no key")
 
     with caplog.at_level("WARNING", logger="src.alerts.price_history"):
         history = closes_by_symbol(["AAPL"], [], data_dir=tmp_path, client=client)
@@ -87,7 +125,7 @@ def test_load_symbol_closes_ignores_leftover_daily_csv(tmp_path, monkeypatch):
             encoding="utf-8",
         )
     client = MagicMock()
-    client.get_candle_data.side_effect = RuntimeError("no key")
+    client.get_candle_data.side_effect = ValueError("no key")
 
     assert load_symbol_closes("AAPL", data_dir=tmp_path, client=client) == []
 
@@ -112,7 +150,7 @@ def test_load_symbol_closes_uses_market_bars_when_csv_gone(tmp_path, monkeypatch
     seed_daily_bars(tmp_path, "2026-09-01", [{"symbol": "AAPL", "close": 100.0}])
     seed_daily_bars(tmp_path, "2026-09-02", [{"symbol": "AAPL", "close": 101.0}])
     client = MagicMock()
-    client.get_candle_data.side_effect = RuntimeError("rate limited")
+    client.get_candle_data.side_effect = requests.exceptions.HTTPError("rate limited")
 
     closes = load_symbol_closes("AAPL", data_dir=tmp_path, client=client)
     assert closes == [100.0, 101.0]
@@ -134,7 +172,7 @@ def test_load_symbol_closes_from_hosted_market_bars(tmp_path, monkeypatch):
         source="test",
     )
     client = MagicMock()
-    client.get_candle_data.side_effect = RuntimeError("no key")
+    client.get_candle_data.side_effect = ValueError("no key")
 
     # data_dir is ignored in hosted mode; bars come from the app database.
     closes = load_symbol_closes("AAPL", data_dir=tmp_path / "unused", client=client)
@@ -194,3 +232,45 @@ def test_closes_by_symbol_overlays_snapshot_and_skips_bad_latest():
     assert overlaid == {"AAPL": [100.0, 105.0]}
     assert ignored == {"AAPL": [100.0, 101.0]}
     assert loader.call_count == 2
+
+
+def test_closes_by_symbol_shares_default_client_across_unique_symbols():
+    closes = [100.0 + i for i in range(20)]
+    with patch("src.alerts.price_history.FinnhubClient") as client_class:
+        client_class.return_value.get_candle_data.return_value = {"s": "ok", "c": closes}
+
+        history = closes_by_symbol(["AAPL", "msft", "aapl"], [])
+
+    assert history == {"AAPL": closes, "MSFT": closes}
+    client_class.assert_called_once_with()
+    assert client_class.return_value.get_candle_data.call_args_list == [
+        call("AAPL", resolution="D", days=90),
+        call("MSFT", resolution="D", days=90),
+    ]
+
+
+@pytest.mark.parametrize("symbols,prefer_provider", [([], True), ([""], True), (["AAPL"], False)])
+def test_closes_by_symbol_does_not_construct_unused_client(symbols, prefer_provider):
+    with (
+        patch("src.alerts.price_history.FinnhubClient") as client_class,
+        patch("src.alerts.price_history.load_symbol_closes_from_local", return_value=[]),
+    ):
+        closes_by_symbol(symbols, [], prefer_provider=prefer_provider)
+
+    client_class.assert_not_called()
+
+
+def test_closes_by_symbol_uses_saved_bars_when_default_client_cannot_start(tmp_path, monkeypatch):
+    monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
+    seed_daily_bars(
+        tmp_path,
+        "2026-09-01",
+        [{"symbol": "AAPL", "close": 100.0}, {"symbol": "MSFT", "close": 200.0}],
+    )
+    with patch(
+        "src.alerts.price_history.FinnhubClient", side_effect=ValueError("no key")
+    ) as client_class:
+        history = closes_by_symbol(["AAPL", "MSFT"], [], data_dir=tmp_path)
+
+    assert history == {"AAPL": [100.0], "MSFT": [200.0]}
+    client_class.assert_called_once_with()
