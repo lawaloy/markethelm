@@ -1,6 +1,6 @@
 """Close-history loader for RSI alert evaluation."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 import requests
@@ -232,3 +232,45 @@ def test_closes_by_symbol_overlays_snapshot_and_skips_bad_latest():
     assert overlaid == {"AAPL": [100.0, 105.0]}
     assert ignored == {"AAPL": [100.0, 101.0]}
     assert loader.call_count == 2
+
+
+def test_closes_by_symbol_shares_default_client_across_unique_symbols():
+    closes = [100.0 + i for i in range(20)]
+    with patch("src.alerts.price_history.FinnhubClient") as client_class:
+        client_class.return_value.get_candle_data.return_value = {"s": "ok", "c": closes}
+
+        history = closes_by_symbol(["AAPL", "msft", "aapl"], [])
+
+    assert history == {"AAPL": closes, "MSFT": closes}
+    client_class.assert_called_once_with()
+    assert client_class.return_value.get_candle_data.call_args_list == [
+        call("AAPL", resolution="D", days=90),
+        call("MSFT", resolution="D", days=90),
+    ]
+
+
+@pytest.mark.parametrize("symbols,prefer_provider", [([], True), ([""], True), (["AAPL"], False)])
+def test_closes_by_symbol_does_not_construct_unused_client(symbols, prefer_provider):
+    with (
+        patch("src.alerts.price_history.FinnhubClient") as client_class,
+        patch("src.alerts.price_history.load_symbol_closes_from_local", return_value=[]),
+    ):
+        closes_by_symbol(symbols, [], prefer_provider=prefer_provider)
+
+    client_class.assert_not_called()
+
+
+def test_closes_by_symbol_uses_saved_bars_when_default_client_cannot_start(tmp_path, monkeypatch):
+    monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
+    seed_daily_bars(
+        tmp_path,
+        "2026-09-01",
+        [{"symbol": "AAPL", "close": 100.0}, {"symbol": "MSFT", "close": 200.0}],
+    )
+    with patch(
+        "src.alerts.price_history.FinnhubClient", side_effect=ValueError("no key")
+    ) as client_class:
+        history = closes_by_symbol(["AAPL", "MSFT"], [], data_dir=tmp_path)
+
+    assert history == {"AAPL": [100.0], "MSFT": [200.0]}
+    client_class.assert_called_once_with()
