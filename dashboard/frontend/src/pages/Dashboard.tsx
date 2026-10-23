@@ -1,3 +1,4 @@
+import { getLogger } from '../utils/logger';
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { ArrowRightIcon, BellAlertIcon, BoltIcon } from '@heroicons/react/24/outline';
@@ -9,6 +10,8 @@ import ExportButton from '../components/common/ExportButton';
 import Summary from './Summary';
 import { formatPercentage } from '../utils/formatters';
 import type { MarketOverview, StockMover } from '../types';
+
+const logger = getLogger('pages/Dashboard');
 
 interface DashboardProps {
   refreshKey?: number;
@@ -104,7 +107,7 @@ const Dashboard: React.FC<DashboardProps> = ({ refreshKey = 0 }) => {
         setLosers(losersRes.data.data);
       } catch (secondaryErr) {
         if (generation !== loadGenerationRef.current) return;
-        console.error('Error fetching secondary data:', secondaryErr);
+        logger.error('Error fetching secondary data:', secondaryErr);
         if (!silent) setSecondaryError('Some sections failed to load. You can retry.');
       } finally {
         if (generation === loadGenerationRef.current && !silent) {
@@ -113,7 +116,7 @@ const Dashboard: React.FC<DashboardProps> = ({ refreshKey = 0 }) => {
       }
     } catch (err) {
       if (generation !== loadGenerationRef.current) return;
-      console.error('Error fetching dashboard data:', err);
+      logger.error('Error fetching dashboard data:', err);
       setError(dashboardLoadErrorMessage(err));
     } finally {
       if (generation === loadGenerationRef.current) {

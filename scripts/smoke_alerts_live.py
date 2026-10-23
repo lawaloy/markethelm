@@ -28,6 +28,7 @@ except ImportError:  # run as ``python scripts/<name>.py``: repo root not on sys
 
 from src.alerts.alert_paths import user_config_dir
 from src.cli.alerts_commands import cmd_test
+from src.core.logger import configure_logging
 
 ROOT = _repo_path.ROOT
 
@@ -144,6 +145,7 @@ def main() -> int:
     args = parser.parse_args()
 
     load_env()
+    configure_logging()
     if args.webhook_url == "https://httpbin.org/post" and not os.environ.get("ALERT_WEBHOOK_URL"):
         print("Webhook: using https://httpbin.org/post (HTTP 200 = success).")
         print("  For Slack, pass --webhook-url with your incoming webhook URL.\n")

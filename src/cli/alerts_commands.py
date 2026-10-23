@@ -19,10 +19,10 @@ from ..alerts.alert_paths import (
 )
 from ..alerts.alert_storage import AlertStorage
 from ..alerts.delivery_status import record_notifier_delivery
-from ..core.logger import setup_logger
+from ..core.logger import configure_logging, get_logger
 from ..storage.database import database_enabled
 
-logger = setup_logger()
+logger = get_logger(__name__)
 
 
 def _notifier_label(class_name: str) -> Optional[str]:
@@ -345,6 +345,7 @@ def main(argv: Optional[List[str]] = None) -> None:
 
     args = parser.parse_args(argv)
     _load_env()
+    configure_logging()
 
     if args.command == "list":
         sys.exit(cmd_list(args.config))

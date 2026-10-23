@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from ..core.logger import setup_logger
+from ..core.logger import get_logger
 from .alert_storage import AlertStorage
 
-logger = setup_logger("alerts.delivery_status")
+logger = get_logger(__name__)
 
 _CHANNEL_BY_NOTIFIER = {
     "EmailNotifier": "email",

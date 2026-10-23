@@ -19,12 +19,12 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from ..analysis.market_calendar import get_market_calendar, previous_close_session_at
-from ..core.logger import setup_logger
+from ..core.logger import get_logger
 
 # Load environment variables
 load_dotenv()
 
-logger = setup_logger("api_client")
+logger = get_logger(__name__)
 
 # Cap Finnhub Retry-After so a huge/poisoned header cannot stall workers for days.
 MAX_RETRY_AFTER_SECONDS = 300

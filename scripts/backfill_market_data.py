@@ -13,12 +13,14 @@ try:
 except ImportError:  # run as ``python scripts/<name>.py``: repo root not on sys.path yet
     import _repo_path
 
+from src.core.logger import configure_logging
 from src.storage.legacy_market_data import backfill_legacy_market_data
 
 ROOT = _repo_path.ROOT
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_logging()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=ROOT / "data")
     parser.add_argument(

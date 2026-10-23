@@ -9,11 +9,10 @@ import sys
 from datetime import datetime
 from typing import Any
 
-from ..core.logger import setup_logger
+from ..core.logger import configure_logging, get_logger
 from ..workflows.tracker import StockTrackerWorkflow
 
-# Set up logger
-logger = setup_logger()
+logger = get_logger(__name__)
 
 _MISSING = "—"
 
@@ -235,6 +234,8 @@ def main():
         from .backtest_commands import main as backtest_main
 
         raise SystemExit(backtest_main(sys.argv[2:]))
+
+    configure_logging()
 
     def _positive_top_n(value: str) -> int:
         """Reject non-positive --top-n before negative slices invert ranking."""

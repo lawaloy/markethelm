@@ -10,6 +10,7 @@ from typing import Optional, Sequence
 
 from ..analysis.backtesting import backtest_data_dir
 from ..analysis.market_calendar import DEFAULT_CALENDAR
+from ..core.logger import configure_logging
 
 
 def _positive_int(value: str) -> int:
@@ -50,6 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    configure_logging()
     args = build_parser().parse_args(argv)
     try:
         report = backtest_data_dir(

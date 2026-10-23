@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import logging
 import math
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.alerts.alert_runner import _fetch_missing_watch_quotes, _load_env, _stocks_from_daily_df
+from src.core.logger import get_logger
 from src.utils.tickers import normalize_ticker
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def load_market_snapshot(

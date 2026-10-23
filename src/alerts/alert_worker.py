@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import math
 import os
 import signal
@@ -10,7 +9,9 @@ import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional
 
-logger = logging.getLogger(__name__)
+from src.core.logger import get_logger
+
+logger = get_logger(__name__)
 
 DEFAULT_INTERVAL_SECONDS = 300
 MIN_INTERVAL_SECONDS = 60

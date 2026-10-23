@@ -8,7 +8,6 @@ try:
 except ImportError:  # run as a script from dashboard/backend: repo root not on sys.path yet
     import _bootstrap
 
-import logging
 import os
 import threading
 from contextlib import asynccontextmanager
@@ -28,6 +27,9 @@ from dashboard.backend.api.market import get_market_summary
 from dashboard.backend.auth import require_user_id
 from dashboard.backend.observability import ObservabilityMiddleware, prometheus_metrics
 from dashboard.backend.rate_limit import RateLimitMiddleware
+from src.core.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Source-checkout root found by _bootstrap (None for a pip install).
 REPO_ROOT = _bootstrap.REPO_ROOT
@@ -54,11 +56,9 @@ def _startup_alert_check() -> None:
         result = run_check_once()
         triggered = _coerce_startup_triggered(result.get("triggered", 0))
         if triggered:
-            logging.getLogger(__name__).info(
-                "Startup alert check triggered %s watch(es)", triggered
-            )
+            logger.info("Startup alert check triggered %s watch(es)", triggered)
     except Exception as exc:
-        logging.getLogger(__name__).warning("Startup alert check failed: %s", exc)
+        logger.warning("Startup alert check failed: %s", exc)
 
 
 @asynccontextmanager
@@ -68,7 +68,7 @@ async def lifespan(_app: FastAPI):
 
         init_database()
     except Exception as exc:
-        logging.getLogger(__name__).warning("Database init skipped: %s", exc)
+        logger.warning("Database init skipped: %s", exc)
     threading.Thread(target=_startup_alert_check, daemon=True).start()
     yield
 
@@ -111,20 +111,20 @@ def parse_cors_origins(
         if not origin:
             continue
         if origin == "*":
-            logging.getLogger(__name__).warning(
+            logger.warning(
                 "Ignoring CORS origin %r — wildcard is incompatible with " "allow_credentials=True",
                 origin,
             )
             continue
         if any(ch.isspace() or ord(ch) < 32 for ch in origin):
-            logging.getLogger(__name__).warning(
+            logger.warning(
                 "Ignoring CORS origin with whitespace/control characters: %r",
                 origin,
             )
             continue
         lower = origin.lower()
         if not (lower.startswith("http://") or lower.startswith("https://")):
-            logging.getLogger(__name__).warning(
+            logger.warning(
                 "Ignoring CORS origin %r — only http(s) origins are allowed",
                 origin,
             )
@@ -290,4 +290,6 @@ if __name__ == "__main__":
     import uvicorn
 
     reload = os.getenv("UVICORN_RELOAD", "").lower() in {"1", "true", "yes"}
-    uvicorn.run("dashboard.backend.main:app", host="0.0.0.0", port=8000, reload=reload)
+    uvicorn.run(
+        "dashboard.backend.main:app", host="0.0.0.0", port=8000, reload=reload, log_config=None
+    )

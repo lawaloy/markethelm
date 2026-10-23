@@ -12,10 +12,10 @@ from urllib.parse import unquote, urlparse
 
 import requests
 
-from ...core.logger import setup_logger
+from ...core.logger import get_logger
 from .delivery_retry import DeliveryAttempt, deliver_with_retry, is_retriable_http_status
 
-logger = setup_logger("alerts.webhook")
+logger = get_logger(__name__)
 
 _BLOCKED_WEBHOOK_HOSTS = frozenset(
     {

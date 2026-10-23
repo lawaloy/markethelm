@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from src.utils.company_names import _clean_display_name
 
-from ..core.logger import setup_logger
+from ..core.logger import get_logger
 from .alert_paths import apply_alert_defaults, resolve_alerts_config_path
 from .alert_rules import (
     collect_rsi_symbols,
@@ -22,7 +22,7 @@ from .notifiers.email_notifier import EmailNotifier
 from .notifiers.webhook_notifier import WebhookNotifier
 from .price_history import closes_by_symbol
 
-logger = setup_logger("alerts")
+logger = get_logger(__name__)
 
 
 class LogNotifier:

@@ -1,23 +1,16 @@
 """Process bootstrap for the dashboard backend, imported before anything else.
 
-Order matters and is preserved from the original ``main.py`` preamble:
+Order matters:
 
-1. configure logging so import-time log records use the dashboard format;
-2. make the repo root importable when running from a source checkout (so ``src``
+1. make the repo root importable when running from a source checkout (so ``src``
    and ``dashboard`` resolve, including ``python main.py`` inside ``backend/``);
-3. load ``.env`` files (cwd, repo root, then ``~/.markethelm/.env``) so modules that
+2. load ``.env`` files (cwd, repo root, then ``~/.markethelm/.env``) so modules that
    read environment variables at import time see them.
+3. configure shared logging before importing application modules.
 """
 
-import logging
 import sys
 from pathlib import Path
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%H:%M:%S",
-)
 
 _here = Path(__file__).resolve()
 REPO_ROOT = None
@@ -41,3 +34,13 @@ try:
         load_dotenv(_user_env, override=True)
 except ImportError:
     pass
+
+
+def _configure_logging() -> None:
+    # Import only after the source-checkout root is available on sys.path.
+    from src.core.logger import configure_logging  # pylint: disable=import-outside-toplevel
+
+    configure_logging()
+
+
+_configure_logging()

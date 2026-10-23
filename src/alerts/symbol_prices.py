@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-import logging
 import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List
 
+from src.core.logger import get_logger
 from src.storage.market_bars import latest_saved_quotes
 from src.utils.tickers import normalize_ticker
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _MAX_LIVE_FETCH = 15
 _MAX_WORKERS = 4

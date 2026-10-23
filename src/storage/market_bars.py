@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import math
 import sqlite3
 from contextlib import contextmanager
@@ -10,11 +9,12 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Sequence
 
+from src.core.logger import get_logger
 from src.utils.tickers import normalize_ticker
 
 from .database import database_enabled, get_connection, init_database
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _MARKET_BARS_DDL = (
     """CREATE TABLE IF NOT EXISTS market_bars (

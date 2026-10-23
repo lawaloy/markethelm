@@ -12,11 +12,11 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from ..core.config import get_indices_to_track
-from ..core.logger import setup_logger
+from ..core.logger import get_logger
 from .api_client import FinnhubClient
 from .index_fetcher import IndexFetcher
 
-logger = setup_logger("data_fetcher")
+logger = get_logger(__name__)
 
 
 class StockDataFetcher:

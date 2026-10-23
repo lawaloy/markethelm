@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, List, Optional
 
-from ..core.logger import setup_logger
+from ..core.logger import get_logger
 from ..utils.tickers import normalize_ticker
 
 # Try to import pytickersymbols package
@@ -22,7 +22,7 @@ except ImportError:
     PyTickerSymbols = None
     PYTICKERSYMBOLS_AVAILABLE = False
 
-logger = setup_logger("index_fetcher")
+logger = get_logger(__name__)
 
 
 class IndexFetcher:

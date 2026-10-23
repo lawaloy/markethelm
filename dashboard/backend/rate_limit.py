@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import ipaddress
-import logging
 import os
 import threading
 import time
@@ -16,10 +15,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from src.core.logger import get_logger
 from src.storage.database import database_enabled
 from src.storage.rate_limits import RateLimitUsage, consume_rate_limit
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
