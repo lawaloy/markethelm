@@ -1,7 +1,10 @@
+import { getLogger } from '../../utils/logger';
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { exportToCsv, exportToPng, exportToPdf } from '../../utils/exportUtils';
 import type { Opportunity } from '../../types';
+
+const logger = getLogger('components/common/ExportButton');
 
 interface ExportButtonProps {
   /** For CSV: the data to export */
@@ -50,7 +53,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
         }
       }
     } catch (err) {
-      console.error('Export failed:', err);
+      logger.error('Export failed:', err);
     } finally {
       exportingRef.current = false;
       if (mountedRef.current) {

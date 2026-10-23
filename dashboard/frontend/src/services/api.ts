@@ -1,3 +1,4 @@
+import { getLogger } from '../utils/logger';
 import axios from 'axios';
 import type {
   MarketOverview,
@@ -19,6 +20,8 @@ import type {
   User,
   QuoteMeta,
 } from '../types';
+
+const logger = getLogger('services/api');
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
@@ -68,7 +71,7 @@ if (import.meta.env.DEV) {
   api.interceptors.response.use(
     (res) => res,
     (err) => {
-      console.error('[API] Request failed:', err.config?.url, err.response?.status, err.message);
+      logger.error('Request failed:', err.config?.url, err.response?.status, err.message);
       return Promise.reject(err);
     },
   );

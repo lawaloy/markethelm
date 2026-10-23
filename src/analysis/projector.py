@@ -14,12 +14,12 @@ from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
-from ..core.logger import setup_logger
+from ..core.logger import get_logger
 from ..utils.company_names import resolve_company_name
 from ..utils.tickers import normalize_ticker
 from .market_calendar import trading_session_after_timestamp
 
-logger = setup_logger("projector")
+logger = get_logger(__name__)
 
 
 class StockProjector:

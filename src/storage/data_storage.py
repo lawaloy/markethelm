@@ -12,7 +12,10 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from ..core.logger import get_logger
 from ..utils.company_names import enrich_stock_data_with_names
+
+logger = get_logger(__name__)
 
 
 def _json_safe_value(value: Any) -> Any:
@@ -160,7 +163,7 @@ class DataStorage:
         try:
             frame = market_bars_frame(day, data_dir=self.data_dir)
         except Exception as e:
-            print(f"Error loading market bars for {day}: {str(e)}")
+            logger.error("Error loading market bars for %s: %s", day, e)
             return None
         if frame is None or frame.empty:
             return None
@@ -227,7 +230,7 @@ class DataStorage:
                 md_path = self.data_dir / f"projections_{date.strftime('%Y-%m-%d')}.md"
                 self._generate_projection_markdown(df, md_path, date)
         except Exception as e:
-            print(f"Warning: Could not generate markdown report: {e}")
+            logger.warning("Could not generate markdown report: %s", e)
 
         return f"projections:{date.strftime('%Y-%m-%d')}"
 

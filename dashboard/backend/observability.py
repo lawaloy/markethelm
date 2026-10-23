@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import threading
 import time
 import uuid
@@ -11,7 +10,9 @@ from collections import Counter
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-logger = logging.getLogger("markethelm.http")
+from src.core.logger import get_logger
+
+logger = get_logger(__name__)
 _lock = threading.Lock()
 _requests = Counter()
 _duration = Counter()

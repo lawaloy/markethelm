@@ -2,7 +2,6 @@
 Historical trends API endpoints
 """
 
-import logging
 import math
 from datetime import date as calendar_date
 from functools import lru_cache
@@ -13,9 +12,10 @@ from fastapi import APIRouter, HTTPException, Path, Query
 from pydantic import BaseModel
 
 from dashboard.backend.services.data_loader import get_data_loader
+from src.core.logger import get_logger
 from src.utils.tickers import normalize_ticker
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

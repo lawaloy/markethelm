@@ -128,3 +128,4 @@ authentication, quotas, retry behavior, response normalization, and tests.
 - [USAGE.md](USAGE.md) — how to run the tracker
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how screening and rate limiting work
 - [DEPLOYMENT.md](DEPLOYMENT.md) — production environment and secrets
+- [LOGGING.md](LOGGING.md) — console verbosity, log files, and browser logging

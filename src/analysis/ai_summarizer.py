@@ -10,12 +10,12 @@ from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
 
-from ..core.logger import setup_logger
+from ..core.logger import get_logger
 
 # Load environment variables
 load_dotenv()
 
-logger = setup_logger("ai_summarizer")
+logger = get_logger(__name__)
 
 
 def _finite_float(value: Any, default: float = 0.0) -> float:

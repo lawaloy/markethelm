@@ -1,3 +1,4 @@
+import { getLogger } from '../utils/logger';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from '@headlessui/react';
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/20/solid';
@@ -12,6 +13,8 @@ import type {
   RunProjection,
   RunProjectionsResponse,
 } from '../types';
+
+const logger = getLogger('pages/HistoricalTrends');
 
 const DAY_OPTIONS = [7, 14, 30, 90];
 
@@ -892,7 +895,7 @@ const HistoricalTrends: React.FC<HistoricalTrendsProps> = ({ refreshKey = 0 }) =
         setDateRange(first && last ? { first, last } : null);
       } catch (err) {
         if (cancelled?.()) return;
-        console.error('Error fetching historical data:', err);
+        logger.error('Error fetching historical data:', err);
         if (!silent) setError('Unable to load historical data. Please try again later.');
         setData([]);
         setDateRange(null);

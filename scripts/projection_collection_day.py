@@ -15,6 +15,7 @@ except ImportError:  # run as ``python scripts/<name>.py``: repo root not on sys
     import _repo_path
 
 from src.analysis.market_calendar import DEFAULT_CALENDAR, get_market_calendar
+from src.core.logger import configure_logging
 
 ROOT = _repo_path.ROOT
 
@@ -37,6 +38,7 @@ def session_has_completed(
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    configure_logging()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--at",

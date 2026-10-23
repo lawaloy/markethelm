@@ -271,11 +271,18 @@ import pandas as pd
 import requests
 
 # Local
-from ..core.logger import setup_logger
+from ..core.logger import get_logger
 from .api_client import FinnhubClient
 ```
 
 </details>
+
+### Logging
+
+Use `get_logger(__name__)` from `src.core.logger` in Python and `getLogger(scope)`
+from `dashboard/frontend/src/utils/logger.ts` in the frontend. Configure Python
+logging only at process startup. See [Logging](docs/LOGGING.md) for levels,
+environment settings, examples, and command-output conventions.
 
 <a id="documentation"></a>
 <details>

@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-import logging
 import math
 from typing import Any, Dict, List
 
 from src.alerts.alert_engine import AlertEngine
 from src.alerts.alert_paths import get_enabled_watch_symbols
+from src.core.logger import get_logger
 from src.utils.tickers import normalize_ticker
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Match Settings / resolve_symbol_prices live-fetch budget so a large watch
 # list cannot burn the shared Finnhub quota on every evaluate tick.

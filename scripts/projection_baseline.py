@@ -20,6 +20,7 @@ except ImportError:  # run as ``python scripts/<name>.py``: repo root not on sys
     import _repo_path
 
 from src.analysis.backtesting import backtest_data_dir
+from src.core.logger import configure_logging
 
 ROOT = _repo_path.ROOT
 
@@ -212,6 +213,7 @@ def print_qualified(path: Path) -> int:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    configure_logging()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",

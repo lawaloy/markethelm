@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
@@ -11,6 +10,7 @@ from src.alerts.alert_engine import AlertEngine
 from src.alerts.alert_rules import evaluate_compound, evaluate_leaf_symbols
 from src.alerts.price_history import closes_by_symbol
 from src.alerts.user_alert_storage import UserAlertStorage
+from src.core.logger import get_logger
 from src.storage.alert_jobs import (
     JOB_DELIVER,
     JOB_EVALUATE_SYMBOL,
@@ -30,7 +30,7 @@ from src.storage.alert_watches import (
 from src.storage.database import init_database
 from src.utils.tickers import normalize_ticker
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _as_utc(value: datetime) -> datetime:

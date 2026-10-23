@@ -12,12 +12,15 @@ try:
 except ImportError:  # run as ``python scripts/<name>.py``: repo root not on sys.path yet
     import _repo_path
 
+from src.core.logger import configure_logging
 from src.storage.projections_store import list_projection_dates
 
 ROOT = _repo_path.ROOT
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Check whether the requested run date is present in projections."""
+    configure_logging()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-date", required=True, help="YYYY-MM-DD expected in projections")
     parser.add_argument("--data-dir", type=Path, default=ROOT / "data")

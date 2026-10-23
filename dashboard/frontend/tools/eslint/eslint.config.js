@@ -18,9 +18,14 @@ export default tseslint.config(
     plugins: { 'react-hooks': reactHooks },
     linterOptions: { reportUnusedDisableDirectives: 'error' },
     rules: {
+      'no-console': 'error',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'error',
     },
+  },
+  {
+    files: ['**/utils/logger.ts'],
+    rules: { 'no-console': 'off' },
   },
   {
     files: ['**/*.test.{ts,tsx}', '**/test/**', '**/setupTests.*'],

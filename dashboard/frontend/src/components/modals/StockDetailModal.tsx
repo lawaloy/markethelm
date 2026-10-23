@@ -1,3 +1,4 @@
+import { getLogger } from '../../utils/logger';
 import React, { useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
@@ -13,6 +14,8 @@ import {
   getTrendIcon,
 } from '../../utils/formatters';
 import type { StockDetail } from '../../types';
+
+const logger = getLogger('components/modals/StockDetailModal');
 
 interface StockDetailModalProps {
   symbol: string;
@@ -43,7 +46,7 @@ const StockDetailModal: React.FC<StockDetailModalProps> = ({ symbol, isOpen, onC
       } catch (err) {
         if (cancelled) return;
         setError('Failed to load stock details');
-        console.error(err);
+        logger.error('Failed to load stock detail', err);
       } finally {
         if (!cancelled) setLoading(false);
       }

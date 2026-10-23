@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from ...core.logger import setup_logger
+from ...core.logger import get_logger
 from .email_delivery import (
     EmailDeliveryBackend,
     _platform_from_address,
@@ -16,7 +16,7 @@ from .email_delivery import (
     parse_recipients,
 )
 
-logger = setup_logger("alerts.email")
+logger = get_logger(__name__)
 
 # Re-export for tests and callers that imported helpers from this module.
 _parse_recipients = parse_recipients

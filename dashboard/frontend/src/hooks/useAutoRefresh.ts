@@ -1,5 +1,8 @@
+import { getLogger } from '../utils/logger';
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+
+const logger = getLogger('hooks/useAutoRefresh');
 
 interface AutoRefreshConfig {
   checkInterval?: number; // How often to check for new data (ms)
@@ -85,7 +88,7 @@ export const useAutoRefresh = (config: AutoRefreshConfig = {}) => {
         nextScheduled: getNextScheduledTime(),
       }));
     } catch (error) {
-      console.error('Auto-refresh check failed:', error);
+      logger.error('Auto-refresh check failed:', error);
       setState((prev) => ({ ...prev, isChecking: false }));
     }
   }, [enabled, state.isChecking, getNextScheduledTime]);

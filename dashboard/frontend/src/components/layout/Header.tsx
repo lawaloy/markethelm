@@ -1,9 +1,12 @@
+import { getLogger } from '../../utils/logger';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { ArrowPathIcon, SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
+
+const logger = getLogger('components/layout/Header');
 
 interface HeaderProps {
   onRefreshComplete?: () => void;
@@ -133,11 +136,11 @@ const Header: React.FC<HeaderProps> = ({
             }
           }
         } catch (err) {
-          console.error('Status poll error:', err);
+          logger.error('Status poll error:', err);
         }
       }, pollMs);
     } catch (error) {
-      console.error('Refresh error:', error);
+      logger.error('Refresh error:', error);
       if (generation !== pollGenerationRef.current) return;
       updateMessage('Failed to start refresh');
       setRefreshing(false);
@@ -166,7 +169,7 @@ const Header: React.FC<HeaderProps> = ({
       }, 3000);
     } catch (error) {
       if (generation !== pollGenerationRef.current) return;
-      console.error('Cancel refresh error:', error);
+      logger.error('Cancel refresh error:', error);
       updateMessage('Failed to cancel refresh.');
       setTimeout(() => {
         if (generation === pollGenerationRef.current) updateMessage('');

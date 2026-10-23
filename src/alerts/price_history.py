@@ -8,16 +8,16 @@ them with ``scripts/backfill_market_data.py`` first.
 
 from __future__ import annotations
 
-import logging
 import math
 import os
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence
 
+from src.core.logger import get_logger
 from src.services.api_client import FinnhubClient
 from src.utils.tickers import normalize_ticker
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # RSI(14) needs 15 closes; Wilder smoothing benefits from extra warm-up bars.
 # ~90 calendar days covers holidays/weekends while staying within free-tier cost.

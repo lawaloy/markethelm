@@ -2,7 +2,6 @@
 Refresh API endpoints — trigger the daily MarketHelm run to fetch new data.
 """
 
-import logging
 import os
 import subprocess
 import sys
@@ -15,8 +14,9 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
 from dashboard.backend.auth import require_user_id
+from src.core.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 

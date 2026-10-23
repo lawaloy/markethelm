@@ -16,12 +16,12 @@ from ..analysis.ai_summarizer import AISummarizer
 from ..analysis.analyzer import StockAnalyzer
 from ..analysis.projector import StockProjector
 from ..core.config import get_indices_to_track
-from ..core.logger import setup_logger
+from ..core.logger import configure_logging, get_logger
 from ..services.data_fetcher import StockDataFetcher
 from ..storage.data_storage import DataStorage
 from ..utils.tickers import normalize_ticker
 
-logger = setup_logger("workflow")
+logger = get_logger(__name__)
 
 
 def _finite_numeric_series(series: pd.Series) -> pd.Series:
@@ -387,6 +387,8 @@ if __name__ == "__main__":
     For CLI output, use: python main.py or python -m src.cli.commands
     """
     import json
+
+    configure_logging()
 
     print("Running MarketHelm workflow (programmatic mode)...")
     print("-" * 60)

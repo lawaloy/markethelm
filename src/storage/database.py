@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import os
 import sqlite3
 from contextlib import contextmanager
@@ -13,8 +12,9 @@ from typing import Any, Iterator
 from urllib.parse import urlparse
 
 from src.alerts.alert_paths import user_config_dir
+from src.core.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)

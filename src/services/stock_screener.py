@@ -11,10 +11,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 
-from ..core.logger import setup_logger
+from ..core.logger import get_logger
 from .api_client import FinnhubClient
 
-logger = setup_logger("stock_screener")
+logger = get_logger(__name__)
 
 
 class StockScreener:

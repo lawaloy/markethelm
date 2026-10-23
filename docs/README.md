@@ -6,6 +6,7 @@ Start with the [main README](../README.md) for install and quick start. Use this
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | **Install & daily use**   | [USAGE.md](USAGE.md) — CLI entry points, projection backtesting, output files, programmatic API                               |
 | **Configuration**         | [CONFIGURATION.md](CONFIGURATION.md) — screening, performance, optional AI, custom providers                                  |
+| **Logging**               | [LOGGING.md](LOGGING.md) — shared logging API, formats, levels, and environment settings                                      |
 | **Deployment & hosting**  | [DEPLOYMENT.md](DEPLOYMENT.md) — staging, PostgreSQL/auth, workers, persistence, providers, secrets                           |
 | **Architecture**          | [ARCHITECTURE.md](ARCHITECTURE.md) — operating modes, tenant/auth and alert boundaries, workflows, data ownership             |
 | **Troubleshooting & FAQ** | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — common errors and answers                                                          |

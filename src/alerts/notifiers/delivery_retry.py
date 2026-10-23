@@ -8,9 +8,9 @@ import time
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-from ...core.logger import setup_logger
+from ...core.logger import get_logger
 
-logger = setup_logger("alerts.delivery_retry")
+logger = get_logger(__name__)
 
 DEFAULT_MAX_ATTEMPTS = 3
 DEFAULT_BASE_SECONDS = 1.0
