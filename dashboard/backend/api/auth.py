@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException
 from pydantic import BaseModel, Field
 
+import dashboard.backend.auth as auth
 from dashboard.backend.account_email import send_account_email
 from src.storage.account_tokens import (
     RESET_PASSWORD,
@@ -202,10 +203,8 @@ async def confirm_password_reset(body: PasswordResetConfirm) -> MessageResponse:
 
 @router.get("/me", response_model=UserResponse)
 async def me(authorization: Optional[str] = Header(default=None)) -> UserResponse:
-    from dashboard.backend.auth import require_user_id
-
     _require_multi_user()
-    user_id = await require_user_id(authorization)
+    user_id = await auth.require_user_id(authorization)
     user = get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=401, detail="User not found.")
@@ -214,10 +213,8 @@ async def me(authorization: Optional[str] = Header(default=None)) -> UserRespons
 
 @router.post("/logout", response_model=MessageResponse)
 async def logout(authorization: Optional[str] = Header(default=None)) -> MessageResponse:
-    from dashboard.backend.auth import require_user_id
-
     _require_multi_user()
-    user_id = await require_user_id(authorization)
+    user_id = await auth.require_user_id(authorization)
     if not user_id:
         raise HTTPException(status_code=401, detail="Authentication required.")
     revoke_user_sessions(user_id)
@@ -229,10 +226,8 @@ async def change_account_password(
     body: ChangePasswordRequest,
     authorization: Optional[str] = Header(default=None),
 ) -> MessageResponse:
-    from dashboard.backend.auth import require_user_id
-
     _require_multi_user()
-    user_id = await require_user_id(authorization)
+    user_id = await auth.require_user_id(authorization)
     if not user_id:
         raise HTTPException(status_code=401, detail="Authentication required.")
     try:
@@ -247,10 +242,8 @@ async def delete_account(
     body: DeleteAccountRequest,
     authorization: Optional[str] = Header(default=None),
 ) -> MessageResponse:
-    from dashboard.backend.auth import require_user_id
-
     _require_multi_user()
-    user_id = await require_user_id(authorization)
+    user_id = await auth.require_user_id(authorization)
     if not user_id:
         raise HTTPException(status_code=401, detail="Authentication required.")
     if body.confirmation != "DELETE":

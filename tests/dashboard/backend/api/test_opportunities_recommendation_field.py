@@ -8,7 +8,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from fastapi.testclient import TestClient
 
+import dashboard.backend.api.projections
+from dashboard.backend.main import app
+from dashboard.backend.services.data_loader import DataLoader
 from tests.helpers.market_bars import seed_daily_bars, seed_projections
 
 
@@ -22,15 +26,8 @@ def temp_data_dir(monkeypatch):
 
 @pytest.fixture
 def client(temp_data_dir):
-    import dashboard.backend.api.projections
-    from dashboard.backend.services.data_loader import DataLoader
-
     loader = DataLoader(data_dir=temp_data_dir)
     with patch.object(dashboard.backend.api.projections, "get_data_loader", return_value=loader):
-        from fastapi.testclient import TestClient
-
-        from dashboard.backend.main import app
-
         yield TestClient(app)
 
 

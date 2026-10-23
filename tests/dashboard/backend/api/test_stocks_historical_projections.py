@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+import dashboard.backend.api.stocks
 from dashboard.backend.main import app
 
 
@@ -15,7 +16,6 @@ def client():
 
 def test_stock_historical_omits_projection_when_target_is_nan(client) -> None:
     """Finite price points must still return when nested projection numerics are NaN."""
-    import dashboard.backend.api.stocks
 
     mock_loader = MagicMock()
     mock_loader.load_historical_data.return_value = [

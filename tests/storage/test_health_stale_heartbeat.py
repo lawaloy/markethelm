@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
 from src.storage.database import get_connection, init_database
 from src.storage.health import record_worker_heartbeat
 
@@ -35,7 +36,6 @@ def test_worker_probe_503s_on_stale_healthy_heartbeat(db) -> None:
             "UPDATE worker_heartbeats SET last_seen_at = ? WHERE worker_id = ?",
             (stale, "w1"),
         )
-    from dashboard.backend.main import app
 
     response = TestClient(app).get("/health/worker")
     assert response.status_code == 503

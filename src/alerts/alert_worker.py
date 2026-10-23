@@ -9,6 +9,16 @@ import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional
 
+import src.alerts.alert_engine as alert_engine
+import src.alerts.alert_orchestrator as alert_orchestrator
+import src.alerts.alert_rules as alert_rules
+import src.alerts.alert_runner as alert_runner
+import src.alerts.job_processor as job_processor
+import src.alerts.market_snapshot as market_snapshot
+import src.alerts.user_alert_storage as user_alert_storage
+import src.storage.database as database
+import src.storage.health as health
+import src.storage.user_alerts as user_alerts
 from src.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -39,28 +49,19 @@ def resolve_interval_seconds(explicit: Optional[int] = None) -> int:
 
 
 def run_check_once() -> Dict[str, Any]:
-    from src.storage.database import database_enabled
-
-    if database_enabled():
+    if database.database_enabled():
         return run_db_worker_cycle()
 
-    from src.alerts.alert_runner import evaluate_alerts_from_latest_data
-
-    return evaluate_alerts_from_latest_data()
+    return alert_runner.evaluate_alerts_from_latest_data()
 
 
 def run_user_check(user_id: str) -> Dict[str, Any]:
     """Evaluate and deliver only one hosted user's configured alerts."""
-    from src.alerts.alert_engine import AlertEngine
-    from src.alerts.market_snapshot import load_market_snapshot
-    from src.alerts.user_alert_storage import UserAlertStorage
-    from src.storage.database import database_enabled
-    from src.storage.user_alerts import load_user_alerts_config
 
-    if not database_enabled():
+    if not database.database_enabled():
         raise RuntimeError("User-scoped alert checks require MARKETHELM_DATABASE_URL")
 
-    exists, config = load_user_alerts_config(user_id)
+    exists, config = user_alerts.load_user_alerts_config(user_id)
     if not exists or not config:
         return {
             "triggered": 0,
@@ -69,9 +70,9 @@ def run_user_check(user_id: str) -> Dict[str, Any]:
             "message": "No active watches configured.",
         }
 
-    engine = AlertEngine.from_config_dict(
+    engine = alert_engine.AlertEngine.from_config_dict(
         config,
-        storage=UserAlertStorage(user_id),
+        storage=user_alert_storage.UserAlertStorage(user_id),
     )
     if not engine:
         return {
@@ -82,18 +83,17 @@ def run_user_check(user_id: str) -> Dict[str, Any]:
         }
 
     watch_symbols: List[str] = []
-    from src.alerts.alert_rules import condition_watch_symbols
 
     for alert in engine.alerts:
         # Truthy non-dict conditions (str/list) AttributeError on .get; mirror
         # alert_paths.get_enabled_watch_symbols / AlertEngine.evaluate soft-fail.
         raw_condition = alert.get("condition")
         condition = raw_condition if isinstance(raw_condition, dict) else {}
-        for symbol in condition_watch_symbols(condition):
+        for symbol in alert_rules.condition_watch_symbols(condition):
             if symbol not in watch_symbols:
                 watch_symbols.append(symbol)
 
-    last_date, _prices, stocks = load_market_snapshot(
+    last_date, _prices, stocks = market_snapshot.load_market_snapshot(
         watch_symbols,
         fetch_missing_quotes=True,
     )
@@ -116,19 +116,15 @@ def run_user_check(user_id: str) -> Dict[str, Any]:
 
 def run_db_worker_cycle(worker_id: Optional[str] = None) -> Dict[str, Any]:
     """Orchestrator tick + job queue processing for hosted multi-user mode."""
-    from src.alerts.alert_orchestrator import run_orchestrator_tick
-    from src.alerts.job_processor import process_job_queue
-    from src.storage.database import init_database
 
-    init_database()
+    database.init_database()
     wid = worker_id or _PROCESS_WORKER_ID
-    from src.storage.health import record_worker_heartbeat
 
     try:
-        tick = run_orchestrator_tick()
-        stats = process_job_queue(wid)
+        tick = alert_orchestrator.run_orchestrator_tick()
+        stats = job_processor.process_job_queue(wid)
     except Exception as exc:
-        record_worker_heartbeat(wid, "error", {"error": type(exc).__name__})
+        health.record_worker_heartbeat(wid, "error", {"error": type(exc).__name__})
         raise
     result = {
         "triggered": stats.get("delivered", 0),
@@ -138,7 +134,7 @@ def run_db_worker_cycle(worker_id: Optional[str] = None) -> Dict[str, Any]:
         "enqueued": tick.get("enqueued", 0),
         "jobs": stats,
     }
-    record_worker_heartbeat(wid, "healthy", {"enqueued": result["enqueued"], "jobs": stats})
+    health.record_worker_heartbeat(wid, "healthy", {"enqueued": result["enqueued"], "jobs": stats})
     return result
 
 
@@ -205,9 +201,7 @@ def run_worker_loop(
     signal.signal(signal.SIGINT, _request_stop)
     signal.signal(signal.SIGTERM, _request_stop)
 
-    from src.storage.database import database_enabled
-
-    mode = "multi-user job queue" if database_enabled() else "file-backed"
+    mode = "multi-user job queue" if database.database_enabled() else "file-backed"
     logger.info("Alert worker started (%s, interval %ss); Ctrl+C to stop", mode, interval)
     while not stop:
         run_worker_once()

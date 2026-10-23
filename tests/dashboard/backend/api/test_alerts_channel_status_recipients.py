@@ -17,6 +17,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
+from src.storage.database import init_database
+
 
 @pytest.fixture
 def multi_user_env(tmp_path, monkeypatch):
@@ -26,15 +29,12 @@ def multi_user_env(tmp_path, monkeypatch):
     monkeypatch.setenv("ALERT_EMAIL_TO", "global-shared@example.com")
     monkeypatch.setenv("ALERT_WEBHOOK_URL", "https://hooks.example/global")
     monkeypatch.setenv("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/global/token")
-    from src.storage.database import init_database
 
     init_database()
 
 
 @pytest.fixture
 def client():
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 

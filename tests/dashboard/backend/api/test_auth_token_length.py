@@ -3,14 +3,15 @@
 import hmac
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+from src.storage.database import init_database
+from src.storage.session import MAX_ACCESS_TOKEN_LENGTH
 
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 
@@ -19,14 +20,11 @@ def multi_user_env(tmp_path, monkeypatch):
     db_path = tmp_path / "token-api.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-    from src.storage.database import init_database
 
     init_database()
 
 
 def test_me_rejects_oversized_bearer_before_hmac(client, multi_user_env, monkeypatch):
-    from src.storage.session import MAX_ACCESS_TOKEN_LENGTH
-
     calls = {"n": 0}
     real_new = hmac.new
 

@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.workflows.tracker import StockTrackerWorkflow
+
 
 @pytest.fixture
 def fetch_workflow():
@@ -14,7 +16,6 @@ def fetch_workflow():
         patch("src.workflows.tracker.AlertEngine") as mock_alert,
     ):
         mock_alert.from_config.return_value = None
-        from src.workflows.tracker import StockTrackerWorkflow
 
         workflow = StockTrackerWorkflow(include_profile=False)
         yield workflow

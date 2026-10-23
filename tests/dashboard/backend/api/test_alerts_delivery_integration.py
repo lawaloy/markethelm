@@ -5,6 +5,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+from src.alerts import alert_storage
 
 
 class EmailNotifier:
@@ -36,7 +40,6 @@ def alerts_config_dir(tmp_path: Path, monkeypatch):
 @pytest.fixture
 def alert_history_dir(tmp_path: Path, monkeypatch):
     """Isolated alert history (delivery log) directory."""
-    from src.alerts import alert_storage
 
     history_dir = tmp_path / "data"
     history_dir.mkdir()
@@ -52,10 +55,6 @@ def alert_history_dir(tmp_path: Path, monkeypatch):
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 

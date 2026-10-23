@@ -11,6 +11,7 @@ from dashboard.backend.rate_limit import (
     check_rate_limits,
     client_ip,
 )
+from src.storage.rate_limits import RateLimitUsage
 
 
 def _app() -> FastAPI:
@@ -156,7 +157,6 @@ def test_hosted_check_rate_limits_uses_database_usage_not_memory(monkeypatch) ->
     would be allowed from an empty memory bucket even when the database
     already counted past the limit.
     """
-    from src.storage.rate_limits import RateLimitUsage
 
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", "sqlite:///hosted.db")
     monkeypatch.setenv("MARKETHELM_RATE_LIMIT_ENABLED", "true")

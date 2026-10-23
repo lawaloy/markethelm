@@ -12,6 +12,9 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+import src.storage.market_bars as market_bars
+import src.storage.projections_store as projections_store
+
 from ..core.logger import get_logger
 from ..utils.company_names import enrich_stock_data_with_names
 
@@ -126,9 +129,7 @@ class DataStorage:
         if date is None:
             date = _data_date_for_filename()
 
-        from .market_bars import upsert_market_bars
-
-        written = upsert_market_bars(
+        written = market_bars.upsert_market_bars(
             data,
             date,
             data_dir=self.data_dir,
@@ -148,10 +149,9 @@ class DataStorage:
         Returns:
             DataFrame with stock data or None if not found
         """
-        from .market_bars import list_market_bar_dates, market_bars_frame
 
         if trade_date is None:
-            dates = list_market_bar_dates(data_dir=self.data_dir, limit=1)
+            dates = market_bars.list_market_bar_dates(data_dir=self.data_dir, limit=1)
             if not dates:
                 return None
             day = dates[0]
@@ -161,7 +161,7 @@ class DataStorage:
             )
 
         try:
-            frame = market_bars_frame(day, data_dir=self.data_dir)
+            frame = market_bars.market_bars_frame(day, data_dir=self.data_dir)
         except Exception as e:
             logger.error("Error loading market bars for %s: %s", day, e)
             return None
@@ -185,12 +185,12 @@ class DataStorage:
         if date is None:
             date = _data_date_for_filename()
 
-        from .projections_store import upsert_daily_summary
-
         payload = _json_safe_value(dict(summary_data))
         if not isinstance(payload, dict):
             raise ValueError("Summary payload must be a JSON object")
-        return upsert_daily_summary(payload, date, data_dir=self.data_dir, source="tracker")
+        return projections_store.upsert_daily_summary(
+            payload, date, data_dir=self.data_dir, source="tracker"
+        )
 
     def save_projections(self, projections: Dict, date: datetime.date = None) -> str:
         """
@@ -212,9 +212,7 @@ class DataStorage:
         if date is None:
             date = _data_date_for_filename()
 
-        from .projections_store import projections_frame, upsert_projections
-
-        written = upsert_projections(
+        written = projections_store.upsert_projections(
             projections,
             date,
             data_dir=self.data_dir,
@@ -225,7 +223,7 @@ class DataStorage:
 
         # Best-effort human report from the just-written rows.
         try:
-            df = projections_frame(date, data_dir=self.data_dir)
+            df = projections_store.projections_frame(date, data_dir=self.data_dir)
             if not df.empty:
                 md_path = self.data_dir / f"projections_{date.strftime('%Y-%m-%d')}.md"
                 self._generate_projection_markdown(df, md_path, date)
@@ -238,7 +236,6 @@ class DataStorage:
         self, df: pd.DataFrame, output_path: Path, date: datetime.date
     ):
         """Generate a formatted Markdown report from projections DataFrame."""
-        from datetime import datetime
 
         # Parse dates
         projection_date = pd.to_datetime(df["projection_date"].iloc[0]).strftime("%B %d, %Y")

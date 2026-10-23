@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.cli import alerts_commands
+from src.storage.database import init_database
 
 
 @pytest.fixture
@@ -12,7 +13,6 @@ def hosted_db(tmp_path, monkeypatch):
     db_path = tmp_path / "alert-test-seed.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
     monkeypatch.setenv("ALERT_EMAIL_TO", "global-shared@example.com")
-    from src.storage.database import init_database
 
     init_database()
 

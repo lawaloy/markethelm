@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.cli.commands import main
+
 
 @pytest.mark.parametrize(
     ("argv", "include_profile", "use_screener", "top_n"),
@@ -27,8 +29,6 @@ def test_main_forwards_flags_to_workflow(argv, include_profile, use_screener, to
 
     with patch("src.cli.commands.StockTrackerWorkflow", return_value=workflow) as ctor:
         with patch("src.cli.commands.display_results") as display:
-            from src.cli.commands import main
-
             result = main()
 
     ctor.assert_called_once_with(include_profile=include_profile)
@@ -44,8 +44,6 @@ def test_main_returns_failure_when_daily_workflow_fails(monkeypatch):
 
     with patch("src.cli.commands.StockTrackerWorkflow", return_value=workflow):
         with patch("src.cli.commands.display_results") as display:
-            from src.cli.commands import main
-
             result = main()
 
     assert result == 1
@@ -61,8 +59,6 @@ def test_main_dispatches_alerts_subcommand_without_daily_workflow(monkeypatch):
 
     with patch("src.cli.alerts_commands.main") as alerts_main:
         with patch("src.cli.commands.StockTrackerWorkflow") as ctor:
-            from src.cli.commands import main
-
             main()
 
     alerts_main.assert_called_once_with(["run", "--loop", "--interval", "120"])
@@ -74,8 +70,6 @@ def test_main_dispatches_backtest_subcommand_without_daily_workflow(monkeypatch)
 
     with patch("src.cli.backtest_commands.main", return_value=0) as backtest_main:
         with patch("src.cli.commands.StockTrackerWorkflow") as ctor:
-            from src.cli.commands import main
-
             with pytest.raises(SystemExit, match="0"):
                 main()
 

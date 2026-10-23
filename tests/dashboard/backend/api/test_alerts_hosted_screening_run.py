@@ -8,10 +8,13 @@ the only hosted delivery path is POST /api/alerts/run → run_user_check.
 from unittest.mock import patch
 
 import pytest
+from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
 from src.alerts.alert_orchestrator import run_orchestrator_tick
 from src.storage.alert_jobs import JOB_EVALUATE_SYMBOL, pending_job_count
 from src.storage.alert_watches import list_enabled_symbols
+from src.storage.database import init_database
 
 
 @pytest.fixture
@@ -19,17 +22,12 @@ def multi_user_env(tmp_path, monkeypatch):
     db_path = tmp_path / "hosted-screening-run.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-    from src.storage.database import init_database
 
     init_database()
 
 
 @pytest.fixture
 def client(multi_user_env):
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 

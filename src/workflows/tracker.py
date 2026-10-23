@@ -5,11 +5,14 @@ Orchestrates screening, fetch, analysis, and storage.
 Reusable across CLI, web, and API.
 """
 
+import json
 import math
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+
+import src.alerts.alert_paths as alert_paths
 
 from ..alerts.alert_engine import AlertEngine
 from ..analysis.ai_summarizer import AISummarizer
@@ -219,9 +222,7 @@ class StockTrackerWorkflow:
                     top_5_symbols.append(f"{stock.get('symbol')} ({volume_txt})")
                 logger.debug(f"Top 5 by volume: {top_5_symbols}")
 
-            from ..alerts.alert_paths import get_enabled_watch_symbols
-
-            watch_symbols = get_enabled_watch_symbols()
+            watch_symbols = alert_paths.get_enabled_watch_symbols()
             if watch_symbols:
                 # Normalize so padded index symbols match stripped watch keys;
                 # drop None/NaN sentinels that would otherwise become "NONE"/"NAN".
@@ -386,7 +387,6 @@ if __name__ == "__main__":
     This runs the workflow and returns structured data without CLI formatting.
     For CLI output, use: python main.py or python -m src.cli.commands
     """
-    import json
 
     configure_logging()
 

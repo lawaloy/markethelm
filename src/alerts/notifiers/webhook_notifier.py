@@ -12,6 +12,8 @@ from urllib.parse import unquote, urlparse
 
 import requests
 
+import src.storage.database as database
+
 from ...core.logger import get_logger
 from .delivery_retry import DeliveryAttempt, deliver_with_retry, is_retriable_http_status
 
@@ -133,9 +135,9 @@ class WebhookNotifier:
 
     @classmethod
     def from_alert(cls, alert: Dict[str, Any]) -> Optional["WebhookNotifier"]:
-        from src.storage.database import database_enabled
-
-        allow_env_webhook = alert.get("_allow_env_webhook", not database_enabled()) is not False
+        allow_env_webhook = (
+            alert.get("_allow_env_webhook", not database.database_enabled()) is not False
+        )
         url = (
             alert.get("webhook_url")
             or (os.environ.get("ALERT_WEBHOOK_URL") if allow_env_webhook else None)

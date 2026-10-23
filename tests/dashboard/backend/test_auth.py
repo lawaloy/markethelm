@@ -6,7 +6,9 @@ import pytest
 from fastapi import HTTPException
 
 from dashboard.backend.auth import bearer_user_id, optional_user_id, require_user_id
+from src.storage.database import get_connection, init_database
 from src.storage.session import create_access_token
+from src.storage.users import create_user, revoke_user_sessions
 
 
 @pytest.fixture
@@ -18,7 +20,6 @@ def auth_secret(monkeypatch):
 def db_on(tmp_path, monkeypatch, auth_secret):
     db_path = tmp_path / "auth-helpers.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
-    from src.storage.database import init_database
 
     init_database()
 
@@ -49,8 +50,6 @@ def test_require_user_id_401_when_db_on_and_auth_missing(db_on) -> None:
 
 
 def test_require_user_id_accepts_valid_bearer_case_insensitive(db_on) -> None:
-    from src.storage.users import create_user
-
     user = create_user("case@example.com", "password123")
     token = create_access_token(user["id"])
     assert asyncio.run(require_user_id(authorization=f"Bearer {token}")) == user["id"]
@@ -59,9 +58,6 @@ def test_require_user_id_accepts_valid_bearer_case_insensitive(db_on) -> None:
 
 
 def test_require_user_id_401_when_user_deleted(db_on) -> None:
-    from src.storage.database import get_connection
-    from src.storage.users import create_user
-
     user = create_user("deleted-helper@example.com", "password123")
     token = create_access_token(user["id"])
     with get_connection() as conn:
@@ -76,8 +72,6 @@ def test_require_user_id_401_when_user_deleted(db_on) -> None:
 
 
 def test_require_user_id_401_when_session_revoked(db_on) -> None:
-    from src.storage.users import create_user, revoke_user_sessions
-
     user = create_user("revoked-helper@example.com", "password123")
     token = create_access_token(user["id"], session_version=user["session_version"])
     revoke_user_sessions(user["id"])
@@ -92,7 +86,6 @@ def test_require_user_id_401_when_session_revoked(db_on) -> None:
 
 def test_require_user_id_403_when_email_unverified(db_on, monkeypatch) -> None:
     monkeypatch.setenv("MARKETHELM_REQUIRE_EMAIL_VERIFICATION", "true")
-    from src.storage.users import create_user
 
     user = create_user("unverified-helper@example.com", "password123")
     token = create_access_token(user["id"], session_version=user["session_version"])

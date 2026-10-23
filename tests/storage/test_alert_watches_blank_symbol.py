@@ -3,7 +3,7 @@
 import pytest
 
 from src.storage.alert_watches import InvalidAlertWatchConfig, validate_watches_config
-from src.storage.database import init_database
+from src.storage.database import get_connection, init_database
 from src.storage.user_alerts import save_user_alerts_config
 from src.storage.users import create_user
 
@@ -54,7 +54,6 @@ def test_save_rejects_sentinel_symbol_without_persisting(db_user):
         save_user_alerts_config(db_user, _config(symbol="nan"))
 
     # Prior empty config remains empty — no partial zombie watch row.
-    from src.storage.database import get_connection
 
     with get_connection() as conn:
         count = conn.execute(

@@ -1,6 +1,10 @@
 """Password reset and email verification API coverage."""
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+from src.storage.database import get_connection, init_database
 
 
 @pytest.fixture
@@ -8,12 +12,8 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{(tmp_path / 'auth.db').as_posix()}")
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
     monkeypatch.setenv("MARKETHELM_PUBLIC_URL", "https://staging.example.com")
-    from src.storage.database import init_database
 
     init_database()
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
 
     return TestClient(app)
 
@@ -97,7 +97,6 @@ def test_failed_delivery_does_not_leave_live_token(client, monkeypatch):
         "/api/auth/register", json={"email": "maildown@example.com", "password": "password123"}
     )
     assert registered.status_code == 200
-    from src.storage.database import get_connection
 
     with get_connection() as conn:
         count = conn.execute("SELECT COUNT(*) AS count FROM account_tokens").fetchone()["count"]
@@ -146,7 +145,6 @@ def test_failed_password_reset_delivery_does_not_leave_live_token(client, monkey
         json={"email": "reset-maildown@example.com"},
     )
     assert response.status_code == 200
-    from src.storage.database import get_connection
 
     with get_connection() as conn:
         count = conn.execute(
@@ -169,7 +167,6 @@ def test_failed_verify_email_request_delivery_does_not_leave_live_token(client, 
         json={"email": "verify-maildown@example.com"},
     )
     assert response.status_code == 200
-    from src.storage.database import get_connection
 
     with get_connection() as conn:
         count = conn.execute(

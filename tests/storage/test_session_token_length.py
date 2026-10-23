@@ -1,11 +1,14 @@
 """Oversized Bearer tokens must fail closed before HMAC (CPU/memory DoS guard)."""
 
+import base64
 import hashlib
 import hmac
+import json
 import time
 
 import pytest
 
+from src.storage import session as session_mod
 from src.storage.session import (
     MAX_ACCESS_TOKEN_LENGTH,
     AuthError,
@@ -47,10 +50,6 @@ def test_created_token_within_length_ceiling(auth_secret):
 
 def test_decode_accepts_token_at_max_length_when_well_formed(auth_secret, monkeypatch):
     """A well-formed token padded to the ceiling still authenticates (boundary)."""
-    import base64
-    import json
-
-    from src.storage import session as session_mod
 
     # Build a signed token, then pad the body segment with ignored JSON whitespace
     # is not possible after b64 — instead verify len == MAX is allowed for garbage

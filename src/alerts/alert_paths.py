@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
+import src.alerts.alert_rules as alert_rules
 from src.utils.tickers import normalize_ticker
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -219,7 +220,6 @@ def save_alerts_config(config: Dict[str, Any], explicit: Optional[Path] = None) 
 
 def get_enabled_watch_symbols() -> List[str]:
     """Symbols referenced by enabled price / RSI / single-symbol compound watches."""
-    from src.alerts.alert_rules import condition_watch_symbols
 
     _, raw = load_alerts_config()
     if not raw:
@@ -233,7 +233,7 @@ def get_enabled_watch_symbols() -> List[str]:
         condition = alert.get("condition") or {}
         if not isinstance(condition, dict):
             continue
-        for symbol in condition_watch_symbols(condition):
+        for symbol in alert_rules.condition_watch_symbols(condition):
             symbols.add(symbol)
     return sorted(symbols)
 

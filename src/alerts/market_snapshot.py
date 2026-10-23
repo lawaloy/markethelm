@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, List, Optional, Tuple
 
+import dashboard.backend.services.data_loader as data_loader
 from src.alerts.alert_runner import _fetch_missing_watch_quotes, _load_env, _stocks_from_daily_df
 from src.core.logger import get_logger
 from src.utils.tickers import normalize_ticker
@@ -26,9 +27,7 @@ def load_market_snapshot(
     stocks: List[Dict[str, Any]] = []
 
     try:
-        from dashboard.backend.services.data_loader import get_data_loader
-
-        loader = get_data_loader()
+        loader = data_loader.get_data_loader()
         last_date = loader.get_latest_date()
         stocks = _stocks_from_daily_df(loader.load_daily_data())
     except (ValueError, OSError, RuntimeError) as exc:

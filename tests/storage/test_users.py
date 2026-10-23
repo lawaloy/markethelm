@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.storage.database import init_database
+from src.storage.database import get_connection, init_database
 from src.storage.users import (
     UserError,
     _hash_password,
@@ -44,7 +44,6 @@ class TestUsers:
 
     def test_authenticate_corrupt_password_hash_returns_none(self, db):
         user = create_user("corrupt@example.com", "password123")
-        from src.storage.database import get_connection
 
         with get_connection() as conn:
             conn.execute(

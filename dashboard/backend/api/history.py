@@ -15,6 +15,11 @@ from dashboard.backend.services.data_loader import get_data_loader
 from src.core.logger import get_logger
 from src.utils.tickers import normalize_ticker
 
+try:
+    from pytickersymbols import PyTickerSymbols
+except ImportError:
+    PyTickerSymbols = None
+
 logger = get_logger(__name__)
 router = APIRouter()
 
@@ -65,9 +70,7 @@ def _load_index_symbol_names(provider_class: type) -> tuple[tuple[str, str], ...
 
 def load_index_symbol_names() -> dict:
     """Symbol -> company name for major US indices, cached for the process lifetime."""
-    try:
-        from pytickersymbols import PyTickerSymbols
-    except Exception:
+    if PyTickerSymbols is None:
         return {}
     return dict(_load_index_symbol_names(PyTickerSymbols))
 

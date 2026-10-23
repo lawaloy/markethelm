@@ -10,6 +10,13 @@ tests so a path or method refactor cannot silently drop those throttles
 from unittest.mock import MagicMock
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.api import refresh
+from dashboard.backend.main import app
+from src.storage.database import init_database
+from src.storage.user_alerts import save_user_alerts_config
+from tests.dashboard.backend.api.test_refresh import FakeProcess, reset_refresh_state
 
 
 @pytest.fixture
@@ -28,12 +35,8 @@ def client(tmp_path, monkeypatch):
     # Keep spend + follow-up POSTs in the same 60s window (CI can otherwise
     # straddle `now % 60 == 0` and see a fresh expensive-write bucket).
     monkeypatch.setattr("dashboard.backend.rate_limit.time.time", lambda: 1_700_000_030)
-    from src.storage.database import init_database
 
     init_database()
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
 
     return TestClient(app)
 
@@ -161,9 +164,6 @@ def test_expensive_write_gates_alert_test_and_refresh_cancel(client, monkeypatch
     or terminate an in-flight Finnhub child if a path typo drops them from the
     rule, so the middleware must 429 before those handlers run.
     """
-    from dashboard.backend.api import refresh
-    from src.storage.user_alerts import save_user_alerts_config
-    from tests.dashboard.backend.api.test_refresh import FakeProcess, reset_refresh_state
 
     headers = _spend_expensive_bucket(client)
     user_id = client.get("/api/auth/me", headers=headers).json()["id"]

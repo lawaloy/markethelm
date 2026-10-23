@@ -2,12 +2,20 @@
 
 import shutil
 import tempfile
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+from fastapi.testclient import TestClient
 
+import dashboard.backend.api.history
+import dashboard.backend.api.market
+import dashboard.backend.api.projections
+import dashboard.backend.api.stocks
+from dashboard.backend.main import app
+from dashboard.backend.services.data_loader import DataLoader
 from tests.helpers.market_bars import (
     seed_daily_bars,
     seed_projections,
@@ -97,7 +105,6 @@ def sample_summary(temp_data_dir):
 @pytest.fixture
 def mock_data_loader(temp_data_dir, sample_daily_data, sample_summary):
     """Create a real DataLoader with temp data."""
-    from dashboard.backend.services.data_loader import DataLoader
 
     return DataLoader(data_dir=temp_data_dir)
 
@@ -110,10 +117,6 @@ def client(mock_data_loader):
     get_data_loader where it is used. Patches must be where the name is looked up
     (in the using module), not where it is defined.
     """
-    import dashboard.backend.api.history
-    import dashboard.backend.api.market
-    import dashboard.backend.api.projections
-    import dashboard.backend.api.stocks
 
     with patch.object(
         dashboard.backend.api.market, "get_data_loader", return_value=mock_data_loader
@@ -127,10 +130,6 @@ def client(mock_data_loader):
                 with patch.object(
                     dashboard.backend.api.history, "get_data_loader", return_value=mock_data_loader
                 ):
-                    from fastapi.testclient import TestClient
-
-                    from dashboard.backend.main import app
-
                     yield TestClient(app)
 
 
@@ -219,17 +218,12 @@ class TestMarketAPI:
 
     def test_market_overview_404_when_no_latest_date(self, temp_data_dir):
         """No latest date must stay 404 (not swallowed into 500)."""
-        import dashboard.backend.api.market
 
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = None
         with patch.object(
             dashboard.backend.api.market, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/market/overview")
 
@@ -238,7 +232,6 @@ class TestMarketAPI:
 
     def test_market_overview_404_when_daily_empty(self, temp_data_dir):
         """Empty daily frame is treated as no usable overview data."""
-        import dashboard.backend.api.market
 
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = "2026-01-15"
@@ -248,10 +241,6 @@ class TestMarketAPI:
         with patch.object(
             dashboard.backend.api.market, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/market/overview")
 
@@ -259,7 +248,6 @@ class TestMarketAPI:
 
     def test_market_overview_404_when_change_percent_missing(self, temp_data_dir):
         """Missing change_percent column must 404 instead of KeyError→500."""
-        import dashboard.backend.api.market
 
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = "2026-01-15"
@@ -267,10 +255,6 @@ class TestMarketAPI:
         with patch.object(
             dashboard.backend.api.market, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/market/overview")
 
@@ -278,7 +262,6 @@ class TestMarketAPI:
 
     def test_market_overview_coerces_all_nan_change_percent(self, temp_data_dir):
         """All-NaN change_percent must yield finite 0.0 stats, not null JSON floats."""
-        import dashboard.backend.api.market
 
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = "2026-01-15"
@@ -292,10 +275,6 @@ class TestMarketAPI:
         with patch.object(
             dashboard.backend.api.market, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/market/overview")
 
@@ -450,7 +429,6 @@ class TestStocksAPI:
 
     def test_stock_detail_404_when_price_fields_missing(self, temp_data_dir):
         """Missing close/change/change_percent must 404 instead of KeyError→500."""
-        import dashboard.backend.api.stocks
 
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = "2026-01-15"
@@ -460,10 +438,6 @@ class TestStocksAPI:
         with patch.object(
             dashboard.backend.api.stocks, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/stocks/AAPL")
 
@@ -472,7 +446,6 @@ class TestStocksAPI:
 
     def test_stock_detail_404_when_price_is_nan(self, temp_data_dir):
         """Non-finite close/change/change_percent must 404 (not null JSON numbers)."""
-        import dashboard.backend.api.stocks
 
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = "2026-01-15"
@@ -489,10 +462,6 @@ class TestStocksAPI:
         with patch.object(
             dashboard.backend.api.stocks, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/stocks/AAPL")
 
@@ -529,7 +498,6 @@ class TestStocksAPI:
 
     def test_stock_historical_skips_nan_days(self, client, mock_data_loader, temp_data_dir):
         """Days without usable change_percent are omitted; valid siblings still return 200."""
-        from datetime import datetime, timedelta
 
         recent = datetime.now().strftime("%Y-%m-%d")
         prior = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -565,7 +533,6 @@ class TestStocksAPI:
         self, client, mock_data_loader, temp_data_dir
     ):
         """If every day lacks finite change_percent, historical returns 404."""
-        from datetime import datetime
 
         recent = datetime.now().strftime("%Y-%m-%d")
         seed_daily_bars(
@@ -579,8 +546,6 @@ class TestStocksAPI:
         assert r.json()["detail"] == "No historical data found."
 
     def test_stock_historical_returns_points(self, client, mock_data_loader, temp_data_dir):
-        from datetime import datetime, timedelta
-
         recent = datetime.now().strftime("%Y-%m-%d")
         older = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
         seed_daily_bars(
@@ -686,7 +651,6 @@ class TestStocksAPI:
         self, client, mock_data_loader, temp_data_dir
     ):
         """Historical series must find padded daily/projection rows for the path symbol."""
-        from datetime import date, timedelta
 
         recent = (date.today() - timedelta(days=1)).isoformat()
         seed_daily_bars(
@@ -819,17 +783,11 @@ class TestStocksAPIEdges:
     """Stock detail/historical error and soft-fail paths."""
 
     def test_stock_detail_404_when_no_latest_date(self, temp_data_dir):
-        import dashboard.backend.api.stocks
-
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = None
         with patch.object(
             dashboard.backend.api.stocks, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/stocks/AAPL")
 
@@ -889,17 +847,11 @@ class TestProjectionsSentimentBands:
         assert bearish["expectedMarketMove"] == -1.75
 
     def test_projections_summary_404_when_no_date(self, temp_data_dir):
-        import dashboard.backend.api.projections
-
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = None
         with patch.object(
             dashboard.backend.api.projections, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/projections/summary")
 
@@ -1020,10 +972,6 @@ class TestMarketAPIErrors:
             "dashboard.backend.services.data_loader.get_data_loader",
             side_effect=ValueError("Data directory not found: /nonexistent"),
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/data-info")
 
@@ -1052,17 +1000,12 @@ class TestMarketAPIErrors:
 
     def test_summary_404_when_no_data(self, temp_data_dir):
         """Summary returns 404 when no summary files exist."""
-        import dashboard.backend.api.market
 
         mock_loader = MagicMock()
         mock_loader.load_summary.side_effect = ValueError("No summary files found")
         with patch.object(
             dashboard.backend.api.market, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/summary")
 
@@ -1260,7 +1203,6 @@ class TestHistorySummaryAPI:
 
     def test_market_movers_skips_non_finite_price_and_coerces_bad_volume(self, temp_data_dir):
         """One NaN price or volume must not 500 the movers card or emit null JSON."""
-        import dashboard.backend.api.market
 
         mock_loader = MagicMock()
         mock_loader.load_daily_data.return_value = pd.DataFrame(
@@ -1276,10 +1218,6 @@ class TestHistorySummaryAPI:
         with patch.object(
             dashboard.backend.api.market, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/market/movers", params={"type": "gainers", "limit": 10})
 
@@ -1294,7 +1232,6 @@ class TestHistorySummaryAPI:
 
     def test_opportunities_skips_non_finite_projection_and_coerces_daily(self, temp_data_dir):
         """NaN confidence/volume must not 500 opportunities or emit null targets."""
-        import dashboard.backend.api.projections
 
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = "2026-01-15"
@@ -1325,10 +1262,6 @@ class TestHistorySummaryAPI:
             "get_data_loader",
             return_value=mock_loader,
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get(
                 "/api/projections/opportunities",
@@ -1349,17 +1282,12 @@ class TestHistorySummaryAPI:
 
     def test_market_movers_404_when_change_percent_missing(self, temp_data_dir):
         """Missing change_percent must 404 instead of KeyError→500."""
-        import dashboard.backend.api.market
 
         mock_loader = MagicMock()
         mock_loader.load_daily_data.return_value = pd.DataFrame({"symbol": ["AAPL"]})
         with patch.object(
             dashboard.backend.api.market, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/market/movers", params={"type": "gainers"})
 
@@ -1368,7 +1296,6 @@ class TestHistorySummaryAPI:
 
     def test_market_movers_404_when_daily_empty(self, temp_data_dir):
         """Empty daily frame is treated as no usable movers data."""
-        import dashboard.backend.api.market
 
         mock_loader = MagicMock()
         mock_loader.load_daily_data.return_value = pd.DataFrame(
@@ -1377,10 +1304,6 @@ class TestHistorySummaryAPI:
         with patch.object(
             dashboard.backend.api.market, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/market/movers", params={"type": "losers"})
 
@@ -1388,17 +1311,12 @@ class TestHistorySummaryAPI:
 
     def test_market_movers_404_when_no_daily_files(self, temp_data_dir):
         """ValueError from the loader must stay 404 (not swallowed into 500)."""
-        import dashboard.backend.api.market
 
         mock_loader = MagicMock()
         mock_loader.load_daily_data.side_effect = ValueError("No daily data files found")
         with patch.object(
             dashboard.backend.api.market, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/market/movers", params={"type": "gainers"})
 
@@ -1407,7 +1325,6 @@ class TestHistorySummaryAPI:
 
     def test_market_movers_empty_when_all_unchanged(self, temp_data_dir):
         """All-zero change_percent yields an empty movers list, not opposite-sign fill."""
-        import dashboard.backend.api.market
 
         mock_loader = MagicMock()
         mock_loader.load_daily_data.return_value = pd.DataFrame(
@@ -1423,10 +1340,6 @@ class TestHistorySummaryAPI:
         with patch.object(
             dashboard.backend.api.market, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             gainers = client.get("/api/market/movers", params={"type": "gainers", "limit": 10})
             losers = client.get("/api/market/movers", params={"type": "losers", "limit": 10})
@@ -1438,17 +1351,12 @@ class TestHistorySummaryAPI:
 
     def test_opportunities_404_when_no_latest_date(self, temp_data_dir):
         """No latest date must stay 404 (not swallowed into 500)."""
-        import dashboard.backend.api.projections
 
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = None
         with patch.object(
             dashboard.backend.api.projections, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/projections/opportunities")
 
@@ -1457,7 +1365,6 @@ class TestHistorySummaryAPI:
 
     def test_opportunities_empty_when_recommendation_column_missing(self, temp_data_dir):
         """Missing recommendation column soft-fails to empty opportunities, not 500."""
-        import dashboard.backend.api.projections
 
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = "2026-01-15"
@@ -1470,10 +1377,6 @@ class TestHistorySummaryAPI:
         with patch.object(
             dashboard.backend.api.projections, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get(
                 "/api/projections/opportunities",
@@ -1488,7 +1391,6 @@ class TestHistorySummaryAPI:
 
     def test_opportunities_empty_when_requested_bucket_has_no_matches(self, temp_data_dir):
         """A valid but empty recommendation bucket must return 200, not 500."""
-        import dashboard.backend.api.projections
 
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = "2026-01-15"
@@ -1505,10 +1407,6 @@ class TestHistorySummaryAPI:
         with patch.object(
             dashboard.backend.api.projections, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get(
                 "/api/projections/opportunities",
@@ -1524,7 +1422,6 @@ class TestHistorySummaryAPI:
 
     def test_projections_summary_coerces_all_nan_means(self, temp_data_dir):
         """All-NaN confidence/expected change must yield finite 0.0, not null JSON."""
-        import dashboard.backend.api.projections
 
         mock_loader = MagicMock()
         mock_loader.get_latest_date.return_value = "2026-01-15"
@@ -1538,10 +1435,6 @@ class TestHistorySummaryAPI:
         with patch.object(
             dashboard.backend.api.projections, "get_data_loader", return_value=mock_loader
         ):
-            from fastapi.testclient import TestClient
-
-            from dashboard.backend.main import app
-
             client = TestClient(app)
             r = client.get("/api/projections/summary")
 

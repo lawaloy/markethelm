@@ -1,6 +1,11 @@
 """Tests for multi-user auth API."""
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+from src.storage.database import get_connection, init_database
+from src.storage.session import create_access_token
 
 
 @pytest.fixture
@@ -8,17 +13,12 @@ def multi_user_env(tmp_path, monkeypatch):
     db_path = tmp_path / "markethelm.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-    from src.storage.database import init_database
 
     init_database()
 
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 
@@ -122,8 +122,6 @@ class TestAuthAPI:
         assert r.json()["detail"] == "Authentication required."
 
     def test_me_rejects_expired_token(self, client, multi_user_env):
-        from src.storage.session import create_access_token
-
         token = create_access_token("missing-user", ttl_seconds=-1)
 
         r = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
@@ -139,8 +137,6 @@ class TestAuthAPI:
         assert registered.status_code == 200
         user_id = registered.json()["user"]["id"]
         token = registered.json()["access_token"]
-
-        from src.storage.database import get_connection
 
         with get_connection() as conn:
             conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
@@ -161,7 +157,6 @@ class TestAuthAPI:
             monkeypatch.delenv("MARKETHELM_AUTH_SECRET", raising=False)
         else:
             monkeypatch.setenv("MARKETHELM_AUTH_SECRET", secret)
-        from src.storage.database import init_database
 
         init_database()
 
@@ -177,7 +172,6 @@ class TestAuthAPI:
         db_path = tmp_path / "auth-login-secret.db"
         monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
         monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-        from src.storage.database import init_database
 
         init_database()
 

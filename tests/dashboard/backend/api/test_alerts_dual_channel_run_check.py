@@ -15,9 +15,12 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import urlparse
 
 import pytest
+from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
 from src.storage.alert_jobs import JOB_DELIVER, JOB_EVALUATE_SYMBOL, pending_job_count
 from src.storage.alert_watches import get_last_triggered, get_watch, record_trigger
+from src.storage.database import init_database
 
 GLOBAL_MAILBOX = "global-shared@example.com"
 GLOBAL_WEBHOOK = "https://hooks.example/global-shared"
@@ -34,17 +37,12 @@ def multi_user_env(tmp_path, monkeypatch):
     monkeypatch.setenv("ALERT_EMAIL_TO", GLOBAL_MAILBOX)
     monkeypatch.setenv("ALERT_WEBHOOK_URL", GLOBAL_WEBHOOK)
     monkeypatch.setenv("ALERT_WEBHOOK_FORMAT", "slack")
-    from src.storage.database import init_database
 
     init_database()
 
 
 @pytest.fixture
 def client(multi_user_env):
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 

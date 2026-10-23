@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from dashboard.backend.services.data_loader import DataLoader
 from tests.helpers.market_bars import seed_summary
 
 
@@ -19,8 +20,6 @@ def temp_data_dir(monkeypatch):
 
 @pytest.fixture
 def loader(temp_data_dir):
-    from dashboard.backend.services.data_loader import DataLoader
-
     return DataLoader(data_dir=temp_data_dir)
 
 

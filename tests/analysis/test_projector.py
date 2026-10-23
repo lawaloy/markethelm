@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 import pytest
 
+from src.analysis.market_calendar import trading_session_after_timestamp
 from src.analysis.projector import StockProjector
 
 
@@ -507,7 +508,6 @@ class TestStockProjector:
     def test_projection_date_is_5_market_sessions_ahead(self, projector, sample_stock_bullish):
         """Projection target uses the configured exchange-session horizon."""
         projection = projector._project_stock(sample_stock_bullish)
-        from src.analysis.market_calendar import trading_session_after_timestamp
 
         generated = datetime.fromisoformat(projection["generated_at"])
         assert generated.utcoffset() is not None

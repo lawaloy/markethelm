@@ -4,12 +4,17 @@ Data loading service for reading CSV and JSON files
 
 import os
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import datetime as _datetime
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+import dashboard.backend.user_paths as user_paths
+import src.storage.market_bars as market_bars
+import src.storage.projections_store as projections_store
 from src.analysis.backtesting import backtest_data_dir
 from src.utils.tickers import normalize_ticker
 
@@ -18,14 +23,13 @@ _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 def _default_data_dir() -> Path:
     """Resolve data directory: DATA_DIR env, repo data/ when developing, else user data dir."""
-    from dashboard.backend.user_paths import user_config_dir
 
     env_dir = os.getenv("DATA_DIR")
     if env_dir:
         return Path(env_dir).resolve()
     here = Path(__file__).resolve()
     if "site-packages" in here.parts:
-        return user_config_dir() / "data"
+        return user_paths.user_config_dir() / "data"
     # Project root is 4 levels up (dashboard/backend/services/data_loader.py)
     project_root = here.parent.parent.parent.parent
     return project_root / "data"
@@ -40,8 +44,6 @@ def _is_iso_date(date_str: str) -> bool:
     """True when date_str is a strict YYYY-MM-DD calendar date."""
     if not _ISO_DATE_RE.fullmatch(date_str or ""):
         return False
-    # Local import: some tests replace module-level ``datetime`` with a now()-only stub.
-    from datetime import datetime as _datetime
 
     try:
         _datetime.strptime(date_str, "%Y-%m-%d")
@@ -98,11 +100,10 @@ class DataLoader:
 
     def load_daily_data(self, date: Optional[str] = None) -> pd.DataFrame:
         """Load daily stock data from durable ``market_bars`` storage."""
-        from src.storage.market_bars import list_market_bar_dates, market_bars_frame
 
         try:
             if date is None:
-                dates = list_market_bar_dates(data_dir=self.data_dir, limit=64)
+                dates = market_bars.list_market_bar_dates(data_dir=self.data_dir, limit=64)
                 day = None
                 for candidate in dates:
                     if _is_weekday(candidate):
@@ -117,7 +118,7 @@ class DataLoader:
                     raise ValueError(f"Daily data not found for date: {date}")
                 day = date
 
-            frame = market_bars_frame(day, data_dir=self.data_dir)
+            frame = market_bars.market_bars_frame(day, data_dir=self.data_dir)
         except ValueError:
             raise
         except Exception as exc:
@@ -131,11 +132,10 @@ class DataLoader:
 
     def load_projections(self, date: Optional[str] = None) -> pd.DataFrame:
         """Load projections from durable ``projections`` storage."""
-        from src.storage.projections_store import list_projection_dates, projections_frame
 
         try:
             if date is None:
-                dates = list_projection_dates(data_dir=self.data_dir, limit=64)
+                dates = projections_store.list_projection_dates(data_dir=self.data_dir, limit=64)
                 day = None
                 for candidate in dates:
                     if _is_weekday(candidate):
@@ -150,7 +150,7 @@ class DataLoader:
                     raise ValueError(f"Projections file not found for date: {date}")
                 day = date
 
-            frame = projections_frame(day, data_dir=self.data_dir)
+            frame = projections_store.projections_frame(day, data_dir=self.data_dir)
         except ValueError:
             raise
         except Exception as exc:
@@ -164,11 +164,10 @@ class DataLoader:
 
     def load_summary(self, date: Optional[str] = None) -> Dict:
         """Load summary from durable ``daily_summaries`` storage."""
-        from src.storage.projections_store import list_summary_dates, load_daily_summary
 
         try:
             if date is None:
-                dates = list_summary_dates(data_dir=self.data_dir, limit=64)
+                dates = projections_store.list_summary_dates(data_dir=self.data_dir, limit=64)
                 day = None
                 for candidate in dates:
                     if _is_weekday(candidate):
@@ -183,7 +182,7 @@ class DataLoader:
                     raise ValueError(f"Summary file not found for date: {date}")
                 day = date
 
-            data = load_daily_summary(day, data_dir=self.data_dir)
+            data = projections_store.load_daily_summary(day, data_dir=self.data_dir)
         except ValueError:
             raise
         except Exception as exc:
@@ -197,10 +196,9 @@ class DataLoader:
 
     def get_available_dates(self) -> List[str]:
         """Get list of all available quote dates from ``market_bars`` (newest first)."""
-        from src.storage.market_bars import list_market_bar_dates
 
         try:
-            return list_market_bar_dates(data_dir=self.data_dir, limit=3650)
+            return market_bars.list_market_bar_dates(data_dir=self.data_dir, limit=3650)
         except OSError as exc:
             raise ValueError(f"Data directory unreadable: {self.data_dir}") from exc
         except Exception as exc:

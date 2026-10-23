@@ -2,6 +2,7 @@
 
 import asyncio
 import subprocess
+from pathlib import Path
 from typing import Optional
 from unittest.mock import MagicMock
 
@@ -10,6 +11,8 @@ from fastapi import BackgroundTasks, HTTPException
 from fastapi.testclient import TestClient
 
 from dashboard.backend.api import refresh
+from dashboard.backend.main import app
+from src.storage.database import init_database
 
 
 class FakeProcess:
@@ -207,7 +210,6 @@ def test_has_refresh_credentials_checks_env_var_and_dotenv(tmp_path, monkeypatch
 
 def test_has_refresh_credentials_soft_fails_unreadable_dotenv(tmp_path, monkeypatch) -> None:
     """An unreadable project .env must not 500 the Fetch New credential gate."""
-    from pathlib import Path
 
     monkeypatch.delenv("FINNHUB_API_KEY", raising=False)
     env_path = tmp_path / ".env"
@@ -446,9 +448,6 @@ def test_refresh_mutations_require_auth_in_database_mode(tmp_path, monkeypatch) 
     db_path = tmp_path / "refresh-auth.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-
-    from dashboard.backend.main import app
-    from src.storage.database import init_database
 
     init_database()
     client = TestClient(app)

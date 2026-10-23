@@ -16,6 +16,10 @@ from urllib.parse import urlparse
 import pytest
 from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
+from src.storage.database import get_connection, init_database
+from src.storage.user_alerts import load_user_alerts_config
+
 
 @pytest.fixture
 def multi_user_env(tmp_path, monkeypatch):
@@ -24,15 +28,12 @@ def multi_user_env(tmp_path, monkeypatch):
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
     monkeypatch.setenv("ALERT_WEBHOOK_URL", "https://hooks.example/global")
     monkeypatch.setenv("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/global/token")
-    from src.storage.database import init_database
 
     init_database()
 
 
 @pytest.fixture
 def client():
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 
@@ -91,9 +92,6 @@ def test_hosted_get_config_strips_placeholder_rule_webhook_without_touching_sibl
     assert sibling.status_code == 200
     assert sibling.json()["channels"]["webhook_url"] is True
     assert "sibling-rule" not in json.dumps(sibling.json())
-
-    from src.storage.database import get_connection
-    from src.storage.user_alerts import load_user_alerts_config
 
     with get_connection() as conn:
         conn.execute(

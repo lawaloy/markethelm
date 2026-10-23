@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+from src.storage.database import get_connection, init_database
 
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 
@@ -25,7 +25,6 @@ def test_register_with_bad_auth_secret_leaves_no_user(
         monkeypatch.delenv("MARKETHELM_AUTH_SECRET", raising=False)
     else:
         monkeypatch.setenv("MARKETHELM_AUTH_SECRET", secret)
-    from src.storage.database import get_connection, init_database
 
     init_database()
 
@@ -50,7 +49,6 @@ def test_register_succeeds_after_fixing_auth_secret(client, tmp_path, monkeypatc
     db_path = tmp_path / "register-retry.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
     monkeypatch.delenv("MARKETHELM_AUTH_SECRET", raising=False)
-    from src.storage.database import init_database
 
     init_database()
 

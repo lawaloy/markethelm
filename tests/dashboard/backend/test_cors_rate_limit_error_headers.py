@@ -12,6 +12,9 @@ the limiter that check_rate_limits already applies in unit tests.
 
 from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
+from src.storage.database import init_database
+
 DASHBOARD_ORIGIN = "http://localhost:3000"
 
 
@@ -27,10 +30,8 @@ def _limited_client(tmp_path, monkeypatch, db_name: str) -> TestClient:
     monkeypatch.setenv("MARKETHELM_RATE_LIMIT_REGISTER", "1000")
     monkeypatch.setenv("MARKETHELM_RATE_LIMIT_AUTH_EMAIL", "1000")
     monkeypatch.setenv("MARKETHELM_RATE_LIMIT_EXPENSIVE", "1000")
-    from src.storage.database import init_database
 
     init_database()
-    from dashboard.backend.main import app
 
     return TestClient(app)
 

@@ -6,7 +6,11 @@ import requests
 
 from src.alerts.notifiers.email_delivery import (
     MailgunEmailBackend,
+    build_mailgun_backend,
+    build_sendgrid_backend,
+    build_smtp_backend,
     email_delivery_configured,
+    resolve_email_provider,
 )
 from src.alerts.notifiers.email_notifier import EmailNotifier
 
@@ -191,8 +195,6 @@ def test_mailgun_request_exception_is_retriable(mock_post: MagicMock) -> None:
     clear=True,
 )
 def test_mailgun_backend_requires_api_key() -> None:
-    from src.alerts.notifiers.email_delivery import build_mailgun_backend
-
     assert build_mailgun_backend() is None
     assert EmailNotifier.from_alert({"id": "a1", "notifications": ["email"]}) is None
     assert email_delivery_configured() is False
@@ -210,8 +212,6 @@ def test_mailgun_backend_requires_api_key() -> None:
     clear=True,
 )
 def test_mailgun_backend_rejects_blank_api_key() -> None:
-    from src.alerts.notifiers.email_delivery import build_mailgun_backend
-
     assert build_mailgun_backend() is None
     assert EmailNotifier.from_alert({"id": "a1", "notifications": ["email"]}) is None
 
@@ -227,8 +227,6 @@ def test_mailgun_backend_rejects_blank_api_key() -> None:
     clear=True,
 )
 def test_mailgun_backend_requires_domain() -> None:
-    from src.alerts.notifiers.email_delivery import build_mailgun_backend
-
     assert build_mailgun_backend() is None
     assert EmailNotifier.from_alert({"id": "a1", "notifications": ["email"]}) is None
     assert email_delivery_configured() is False
@@ -246,8 +244,6 @@ def test_mailgun_backend_requires_domain() -> None:
     clear=True,
 )
 def test_mailgun_backend_rejects_blank_domain() -> None:
-    from src.alerts.notifiers.email_delivery import build_mailgun_backend
-
     assert build_mailgun_backend() is None
     assert EmailNotifier.from_alert({"id": "a1", "notifications": ["email"]}) is None
 
@@ -262,8 +258,6 @@ def test_mailgun_backend_rejects_blank_domain() -> None:
     clear=True,
 )
 def test_sendgrid_backend_requires_api_key() -> None:
-    from src.alerts.notifiers.email_delivery import build_sendgrid_backend
-
     assert build_sendgrid_backend() is None
     assert EmailNotifier.from_alert({"id": "a1", "notifications": ["email"]}) is None
     assert email_delivery_configured() is False
@@ -280,8 +274,6 @@ def test_sendgrid_backend_requires_api_key() -> None:
     clear=True,
 )
 def test_sendgrid_backend_rejects_blank_api_key() -> None:
-    from src.alerts.notifiers.email_delivery import build_sendgrid_backend
-
     assert build_sendgrid_backend() is None
     assert EmailNotifier.from_alert({"id": "a1", "notifications": ["email"]}) is None
 
@@ -296,8 +288,6 @@ def test_sendgrid_backend_rejects_blank_api_key() -> None:
     clear=True,
 )
 def test_smtp_backend_requires_credentials() -> None:
-    from src.alerts.notifiers.email_delivery import build_smtp_backend
-
     assert build_smtp_backend({}) is None
     assert EmailNotifier.from_alert({"id": "a1", "notifications": ["email"]}) is None
 
@@ -331,8 +321,6 @@ def test_mailgun_eu_api_base() -> None:
     clear=True,
 )
 def test_unknown_provider_falls_back_to_sendgrid_secret() -> None:
-    from src.alerts.notifiers.email_delivery import resolve_email_provider
-
     assert resolve_email_provider() == "sendgrid"
     assert email_delivery_configured() is True
 
@@ -360,8 +348,6 @@ def test_sendgrid_not_configured_without_from_address() -> None:
     clear=True,
 )
 def test_smtp_backend_rejects_invalid_port() -> None:
-    from src.alerts.notifiers.email_delivery import build_smtp_backend
-
     assert build_smtp_backend({}) is None
 
 
@@ -377,8 +363,6 @@ def test_smtp_backend_rejects_invalid_port() -> None:
     clear=True,
 )
 def test_smtp_backend_ssl_on_465() -> None:
-    from src.alerts.notifiers.email_delivery import build_smtp_backend
-
     backend = build_smtp_backend({})
     assert backend is not None
     assert backend._use_ssl is True

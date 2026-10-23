@@ -14,6 +14,10 @@ from urllib.parse import urlparse
 import pytest
 from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
+from src.storage.database import init_database
+from src.storage.user_alerts import load_user_alerts_config
+
 
 @pytest.fixture
 def multi_user_env(tmp_path, monkeypatch):
@@ -22,15 +26,12 @@ def multi_user_env(tmp_path, monkeypatch):
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
     monkeypatch.setenv("ALERT_WEBHOOK_URL", "https://hooks.example/global")
     monkeypatch.setenv("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/global/token")
-    from src.storage.database import init_database
 
     init_database()
 
 
 @pytest.fixture
 def client():
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 
@@ -48,7 +49,6 @@ def test_hosted_defaults_webhook_marks_channel_ready_with_empty_alerts(
     client, multi_user_env
 ) -> None:
     """Empty alerts + stripped defaults must still flip the channel flag."""
-    from src.storage.user_alerts import load_user_alerts_config
 
     token_a, user_a = _register(client, "defaults-hook-a@example.com")
     token_b, _user_b = _register(client, "defaults-hook-b@example.com")

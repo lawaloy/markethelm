@@ -13,6 +13,7 @@ from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
+import src.alerts.alert_worker as alert_worker
 from dashboard.backend.auth import require_user_id
 from src.core.logger import get_logger
 
@@ -226,9 +227,7 @@ def run_daily_tracker():
             refresh_status["last_refresh"] = datetime.now().isoformat()
             refresh_status["progress"] = "Data refresh completed successfully!"
             try:
-                from src.alerts.alert_worker import run_check_once
-
-                result = run_check_once()
+                result = alert_worker.run_check_once()
                 if result.get("triggered", 0) > 0:
                     logger.info("Alerts triggered after refresh: %s", result["triggered"])
             except Exception as exc:

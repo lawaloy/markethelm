@@ -9,6 +9,9 @@ from pathlib import Path
 from statistics import median
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
+import src.storage.market_bars as market_bars
+import src.storage.projections_store as projections_store
+
 from ..utils.tickers import normalize_ticker
 from .market_calendar import (
     DEFAULT_CALENDAR,
@@ -293,15 +296,12 @@ def backtest_data_dir(
     if days < 1:
         raise ValueError("days must be at least 1")
 
-    from src.storage.market_bars import list_market_bar_dates, load_market_bars
-    from src.storage.projections_store import list_projection_dates, load_projections
-
     try:
-        bar_dates = list_market_bar_dates(data_dir=root, limit=3650)
+        bar_dates = market_bars.list_market_bar_dates(data_dir=root, limit=3650)
     except Exception:
         bar_dates = []
     try:
-        projection_dates = list_projection_dates(data_dir=root, limit=3650)
+        projection_dates = projections_store.list_projection_dates(data_dir=root, limit=3650)
     except Exception:
         projection_dates = []
 
@@ -322,13 +322,13 @@ def backtest_data_dir(
     closes: List[Dict[str, Any]] = []
 
     for day in bar_dates:
-        for row in load_market_bars(day, data_dir=root):
+        for row in market_bars.load_market_bars(day, data_dir=root):
             closes.append({**row, "date": day})
 
     for day in projection_dates:
         if datetime.strptime(day, "%Y-%m-%d").date() < cutoff:
             continue
-        for row in load_projections(day, data_dir=root):
+        for row in projections_store.load_projections(day, data_dir=root):
             projections.append({**row, "run_date": day})
 
     return evaluate_projections(

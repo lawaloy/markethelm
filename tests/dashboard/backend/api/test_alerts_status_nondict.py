@@ -7,6 +7,8 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
+
 
 @pytest.fixture
 def alerts_config_dir(tmp_path: Path, monkeypatch):
@@ -19,8 +21,6 @@ def alerts_config_dir(tmp_path: Path, monkeypatch):
 
 @pytest.fixture
 def client():
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 

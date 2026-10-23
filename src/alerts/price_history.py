@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence
 
+import src.storage.market_bars as market_bars
 from src.core.logger import get_logger
 from src.services.api_client import FinnhubClient
 from src.utils.tickers import normalize_ticker
@@ -140,13 +141,8 @@ def load_symbol_closes_from_market_bars(
 
     root = resolve_market_data_dir(data_dir)
     try:
-        from src.storage.market_bars import (
-            ensure_market_bars_schema,
-            market_bars_connection,
-        )
-
-        with market_bars_connection(data_dir=root) as conn:
-            ensure_market_bars_schema(conn)
+        with market_bars.market_bars_connection(data_dir=root) as conn:
+            market_bars.ensure_market_bars_schema(conn)
             rows = conn.execute(
                 """
                 SELECT close

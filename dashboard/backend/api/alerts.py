@@ -10,6 +10,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
+import src.alerts.alert_storage as alert_storage
+import src.alerts.alert_worker as alert_worker
+import src.alerts.delivery_status as delivery_status
+import src.alerts.user_alert_storage as user_alert_storage
 from dashboard.backend.api.history import build_symbol_catalog
 from dashboard.backend.auth import require_user_id
 from dashboard.backend.services.data_loader import get_data_loader
@@ -533,18 +537,14 @@ async def get_alerts_status(
 
     try:
         if database_enabled() and user_id:
-            from src.alerts.user_alert_storage import UserAlertStorage
-
-            storage = UserAlertStorage(user_id)
+            storage = user_alert_storage.UserAlertStorage(user_id)
             last_triggered = storage.latest_event_timestamp()
             latest_deliveries = storage.latest_delivery_by_channel()
         else:
-            from src.alerts.alert_storage import AlertStorage
-            from src.alerts.delivery_status import latest_deliveries_by_channel
 
-            storage = AlertStorage()
+            storage = alert_storage.AlertStorage()
             last_triggered = storage.latest_event_timestamp()
-            latest_deliveries = latest_deliveries_by_channel(storage)
+            latest_deliveries = delivery_status.latest_deliveries_by_channel(storage)
     except Exception:
         pass
 
@@ -564,9 +564,7 @@ async def run_alerts_now(
 ) -> AlertsRunResponse:
     """Evaluate active alerts against saved data and live quotes for watch symbols."""
     try:
-        from src.alerts.alert_worker import run_check_once, run_user_check
-
-        raw = run_user_check(user_id) if user_id else run_check_once()
+        raw = alert_worker.run_user_check(user_id) if user_id else alert_worker.run_check_once()
     except Exception:
         raise HTTPException(status_code=500, detail="Alert check failed.")
     if raw.get("message") == "No market data available.":
@@ -598,9 +596,8 @@ async def post_alert_test(
         if not exists or raw is None:
             raise HTTPException(status_code=404, detail="No alerts config for this user.")
         config_payload = raw
-        from src.alerts.user_alert_storage import UserAlertStorage
 
-        storage = UserAlertStorage(user_id)
+        storage = user_alert_storage.UserAlertStorage(user_id)
     try:
         result = run_alert_test(
             body.id,

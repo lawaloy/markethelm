@@ -4,6 +4,14 @@ import json
 from unittest.mock import patch
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+from src.alerts.user_alert_storage import UserAlertStorage
+from src.storage.alert_watches import list_enabled_symbols, list_watches_for_symbol
+from src.storage.database import get_connection, init_database
+from src.storage.user_alerts import load_user_alerts_config
+from src.storage.users import authenticate_user
 
 
 @pytest.fixture
@@ -11,17 +19,12 @@ def multi_user_env(tmp_path, monkeypatch):
     db_path = tmp_path / "markethelm.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-    from src.storage.database import init_database
 
     init_database()
 
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 
@@ -100,11 +103,6 @@ class TestMultiUserAlertsAPI:
         assert saved.json()["config"]["alerts"] == []
 
     def test_invalid_update_preserves_existing_config_and_watch_index(self, client, multi_user_env):
-        from src.storage.alert_watches import (
-            list_enabled_symbols,
-            list_watches_for_symbol,
-        )
-
         token = _register(client)
         headers = {"Authorization": f"Bearer {token}"}
         valid_payload = {
@@ -191,8 +189,6 @@ class TestMultiUserAlertsAPI:
         assert mock_check.call_args.args[0]
 
     def test_run_only_evaluates_authenticated_users_watches(self, client, multi_user_env):
-        from src.storage.database import get_connection
-
         token_a = _register(client, "runner-a@example.com")
         token_b = _register(client, "runner-b@example.com")
         headers_a = {"Authorization": f"Bearer {token_a}"}
@@ -256,9 +252,6 @@ class TestMultiUserAlertsAPI:
     def test_webhook_secret_is_user_scoped_and_write_only(
         self, client, multi_user_env, tmp_path, monkeypatch
     ):
-        from src.storage.user_alerts import load_user_alerts_config
-        from src.storage.users import authenticate_user
-
         user_config_dir = tmp_path / "user-config"
         monkeypatch.setattr("src.alerts.alert_paths.user_config_dir", lambda: user_config_dir)
         monkeypatch.setenv("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/global/token")
@@ -435,9 +428,6 @@ class TestMultiUserAlertsAPI:
         assert put2.json()["config"]["defaults"]["email_to"] == "tenant@example.com"
 
     def test_status_active_watches_and_last_triggered_are_user_scoped(self, client, multi_user_env):
-        from src.alerts.user_alert_storage import UserAlertStorage
-        from src.storage.users import authenticate_user
-
         token_a = _register(client, "watches-a@example.com")
         token_b = _register(client, "watches-b@example.com")
         headers_a = {"Authorization": f"Bearer {token_a}"}

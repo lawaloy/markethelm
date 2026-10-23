@@ -5,8 +5,11 @@ from __future__ import annotations
 import math
 from typing import Any, Dict, List
 
+import dashboard.backend.services.data_loader as data_loader
+import src.services.data_fetcher as data_fetcher
 from src.alerts.alert_engine import AlertEngine
 from src.alerts.alert_paths import get_enabled_watch_symbols
+from src.core.environment import load_environment
 from src.core.logger import get_logger
 from src.utils.tickers import normalize_ticker
 
@@ -19,9 +22,7 @@ _MAX_LIVE_WATCH_FETCH = 15
 
 def _load_env() -> None:
     try:
-        from src.cli.alerts_commands import _load_env as cli_load_env
-
-        cli_load_env()
+        load_environment()
     except Exception:
         pass
 
@@ -73,9 +74,7 @@ def _fetch_missing_watch_quotes(
         missing = missing[:_MAX_LIVE_WATCH_FETCH]
 
     try:
-        from src.services.data_fetcher import StockDataFetcher
-
-        fetcher = StockDataFetcher(include_profile=False)
+        fetcher = data_fetcher.StockDataFetcher(include_profile=False)
     except Exception as exc:
         logger.warning("Could not fetch watch symbols (API unavailable): %s", exc)
         return stocks
@@ -122,12 +121,10 @@ def evaluate_alerts_from_latest_data(*, fetch_missing_quotes: bool = True) -> Di
             "message": "No active watches configured.",
         }
 
-    from dashboard.backend.services.data_loader import get_data_loader
-
     last_date: str | None = None
     stocks: List[Dict[str, Any]] = []
     try:
-        loader = get_data_loader()
+        loader = data_loader.get_data_loader()
         last_date = loader.get_latest_date()
         stocks = _stocks_from_daily_df(loader.load_daily_data())
     except ValueError:
