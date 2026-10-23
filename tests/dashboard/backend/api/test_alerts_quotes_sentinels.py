@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+
 
 def _client(monkeypatch):
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
     return TestClient(app)
 

@@ -6,6 +6,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+from tests.helpers.market_bars import seed_projections
+
 MODULE_PATH = Path(__file__).resolve().parents[2] / "scripts" / "projection_baseline.py"
 SPEC = importlib.util.spec_from_file_location("projection_baseline", MODULE_PATH)
 assert SPEC is not None
@@ -125,8 +127,6 @@ def test_capture_refuses_unqualified_data_without_creating_output(
 
 
 def test_capture_hashes_the_same_private_snapshot_it_evaluates(tmp_path: Path, monkeypatch) -> None:
-    from tests.helpers.market_bars import seed_projections
-
     source = tmp_path / "source"
     source.mkdir()
     # Capture snapshots market_bars.sqlite (bars + projections + summaries).

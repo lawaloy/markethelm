@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 from contextlib import contextmanager
@@ -11,8 +12,19 @@ from pathlib import Path
 from typing import Any, Iterator
 from urllib.parse import urlparse
 
+import src.storage.alert_watches as alert_watches
 from src.alerts.alert_paths import user_config_dir
 from src.core.logger import get_logger
+
+try:
+    import psycopg
+    from psycopg.rows import dict_row
+except ImportError as exc:
+    psycopg = None
+    dict_row = None
+    _psycopg_import_error = exc
+else:
+    _psycopg_import_error = None
 
 logger = get_logger(__name__)
 
@@ -345,14 +357,11 @@ def _connect_sqlite() -> sqlite3.Connection:
 
 
 def _connect_postgresql() -> _PostgresConnection:
-    try:
-        import psycopg
-        from psycopg.rows import dict_row
-    except ImportError as exc:
+    if psycopg is None:
         raise RuntimeError(
             "PostgreSQL support requires Psycopg with a usable libpq implementation. "
             "Install libpq or psycopg[binary] on a supported platform."
-        ) from exc
+        ) from _psycopg_import_error
     raw = (os.environ.get("MARKETHELM_DATABASE_URL") or "").strip()
     return _PostgresConnection(psycopg.connect(raw, row_factory=dict_row))
 
@@ -438,9 +447,6 @@ def init_database() -> None:
 
 
 def _backfill_watches_from_configs() -> None:
-    import json
-
-    from .alert_watches import InvalidAlertWatchConfig, sync_watches_from_config
 
     # Snapshot+rewrite must share the writer mutex. A committed SELECT followed
     # by a later sync can restore stale watches over a save that already wrote
@@ -453,8 +459,8 @@ def _backfill_watches_from_configs() -> None:
         for row in rows:
             try:
                 config = json.loads(row["config_json"])
-                sync_watches_from_config(row["user_id"], config, connection=conn)
-            except (json.JSONDecodeError, InvalidAlertWatchConfig) as exc:
+                alert_watches.sync_watches_from_config(row["user_id"], config, connection=conn)
+            except (json.JSONDecodeError, alert_watches.InvalidAlertWatchConfig) as exc:
                 logger.warning(
                     "Skipping invalid alert config during watch backfill for user %s: %s",
                     row["user_id"],

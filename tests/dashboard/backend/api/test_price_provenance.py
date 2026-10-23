@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from dashboard.backend.main import app
 from dashboard.backend.services.data_loader import DataLoader
+from src.storage.database import init_database
 from src.storage.market_bars import latest_saved_quotes, upsert_market_bars
 
 
@@ -104,7 +105,6 @@ def test_alert_catalog_and_quote_return_newest_provider_time(tmp_path, monkeypat
 def test_hosted_database_saved_quote_selection(tmp_path, monkeypatch):
     database = tmp_path / "hosted.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{database.as_posix()}")
-    from src.storage.database import init_database
 
     init_database()
     upsert_market_bars(

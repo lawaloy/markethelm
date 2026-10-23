@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
+import dashboard.backend.api.stocks
 from dashboard.backend.main import app
 
 
@@ -18,7 +19,6 @@ def client():
 
 def test_stock_detail_falls_back_when_name_is_nan(client) -> None:
     """float('nan') name previously failed StockDetail str validation → 500."""
-    import dashboard.backend.api.stocks
 
     mock_loader = MagicMock()
     mock_loader.get_latest_date.return_value = "2026-01-15"
@@ -46,7 +46,6 @@ def test_stock_detail_falls_back_when_name_is_nan(client) -> None:
 
 def test_stock_detail_defaults_missing_projection_labels(client) -> None:
     """Missing risk/trend/recommendation must keep projection, not drop it."""
-    import dashboard.backend.api.stocks
 
     mock_loader = MagicMock()
     mock_loader.get_latest_date.return_value = "2026-01-15"

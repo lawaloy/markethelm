@@ -12,10 +12,13 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
+from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
 from src.alerts.job_processor import process_job_queue
 from src.storage.alert_jobs import JOB_DELIVER, enqueue_job, pending_job_count
 from src.storage.alert_watches import get_watch
+from src.storage.database import init_database
 
 GLOBAL_MAILBOX = "global-shared@example.com"
 
@@ -29,17 +32,12 @@ def multi_user_env(tmp_path, monkeypatch):
     monkeypatch.setenv("SENDGRID_API_KEY", "sg-test-key")
     monkeypatch.setenv("ALERT_EMAIL_FROM", "alerts@markethelm.example")
     monkeypatch.setenv("ALERT_EMAIL_TO", GLOBAL_MAILBOX)
-    from src.storage.database import init_database
 
     init_database()
 
 
 @pytest.fixture
 def client(multi_user_env):
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 

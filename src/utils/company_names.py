@@ -10,6 +10,11 @@ from typing import Any, Dict, Optional
 
 from src.utils.tickers import normalize_ticker
 
+try:
+    import pytickersymbols
+except ImportError:
+    pytickersymbols = None
+
 # Cached symbol->name lookup - built once, reused
 _name_cache: Dict[str, str] = {}
 
@@ -50,10 +55,11 @@ def resolve_company_name(symbol: str, fallback: str = "") -> str:
 
     if key in _name_cache:
         return _name_cache[key]
+    if pytickersymbols is None:
+        _name_cache[key] = key
+        return key
     try:
-        from pytickersymbols import PyTickerSymbols
-
-        data = PyTickerSymbols()
+        data = pytickersymbols.PyTickerSymbols()
         for index_name in ["S&P 500", "NASDAQ 100", "Dow Jones"]:
             try:
                 for s in data.get_stocks_by_index(index_name):

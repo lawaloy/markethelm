@@ -5,6 +5,7 @@ from pathlib import Path
 
 from dashboard.backend.services.data_loader import _default_data_dir
 from src.storage.data_storage import DataStorage
+from src.storage.projections_store import load_daily_summary, load_projections
 
 
 def test_datastorage_uses_data_dir_env_when_unspecified(monkeypatch, tmp_path):
@@ -72,7 +73,6 @@ def test_blank_data_dir_env_falls_back_to_local_data(monkeypatch, tmp_path):
 
 def test_summary_and_projections_write_to_data_dir(monkeypatch, tmp_path):
     """Fetch New also persists summary and projections beside market bars."""
-    from src.storage.projections_store import load_daily_summary, load_projections
 
     target = tmp_path / "var-lib-markethelm-data"
     target.mkdir()

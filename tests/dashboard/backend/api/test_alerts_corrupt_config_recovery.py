@@ -3,9 +3,11 @@
 from unittest.mock import patch
 
 import pytest
+from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
 from src.storage.alert_watches import list_watches_for_symbol
-from src.storage.database import get_connection
+from src.storage.database import get_connection, init_database
 
 
 @pytest.fixture
@@ -13,17 +15,12 @@ def multi_user_env(tmp_path, monkeypatch):
     db_path = tmp_path / "corrupt-recover.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-    from src.storage.database import init_database
 
     init_database()
 
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 

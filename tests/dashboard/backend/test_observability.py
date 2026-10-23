@@ -7,6 +7,7 @@ from starlette.responses import Response
 
 from dashboard.backend.main import app
 from dashboard.backend.observability import ObservabilityMiddleware
+from src.storage.database import LATEST_SCHEMA_VERSION, init_database
 
 
 def test_liveness_readiness_and_metrics_file_mode(monkeypatch):
@@ -25,7 +26,6 @@ def test_readiness_reports_database_schema(tmp_path, monkeypatch):
     monkeypatch.setenv(
         "MARKETHELM_DATABASE_URL", f"sqlite:///{(tmp_path / 'health.db').as_posix()}"
     )
-    from src.storage.database import LATEST_SCHEMA_VERSION, init_database
 
     init_database()
     response = TestClient(app).get("/health/ready")

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+
 
 def test_get_quotes_caps_symbols_before_resolving(monkeypatch):
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     client = TestClient(app)
     monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
 

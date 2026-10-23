@@ -11,6 +11,7 @@ from unittest.mock import patch
 import pandas as pd
 
 from src.storage.data_storage import DataStorage, _data_date_for_filename
+from src.storage.projections_store import load_daily_summary, load_projections, projections_frame
 
 
 class TestDataDateForFilename:
@@ -78,7 +79,6 @@ class TestDataStorage(unittest.TestCase):
 
     def test_save_summary(self):
         """Test saving summary to durable daily_summaries storage."""
-        from src.storage.projections_store import load_daily_summary
 
         location = self.storage.save_summary(self.sample_summary, date=date(2026, 1, 15))
         self.assertEqual(location, "summary:2026-01-15")
@@ -98,7 +98,6 @@ class TestDataStorage(unittest.TestCase):
 
     def test_load_summary(self):
         """Test loading summary from durable storage after save."""
-        from src.storage.projections_store import load_daily_summary
 
         self.storage.save_summary(self.sample_summary, date=date(2026, 1, 15))
         self.assertEqual(list(Path(self.test_data_dir).glob("summary_*.json")), [])
@@ -108,7 +107,6 @@ class TestDataStorage(unittest.TestCase):
 
     def test_save_projections_writes_db_and_markdown(self):
         """Projections land in DB (no CSV) and still emit optional markdown."""
-        from src.storage.projections_store import load_projections, projections_frame
 
         projections = {
             "AAPL": {
@@ -168,7 +166,6 @@ class TestDataStorage(unittest.TestCase):
 
     def test_save_projections_still_returns_key_when_markdown_fails(self):
         """Markdown report failures must not block durable projection persistence."""
-        from src.storage.projections_store import load_projections
 
         projections = {
             "AAPL": {

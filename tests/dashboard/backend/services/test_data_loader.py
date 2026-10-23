@@ -2,11 +2,14 @@
 
 import shutil
 import tempfile
+from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
+import dashboard.backend.services.data_loader as dl
+from dashboard.backend.services.data_loader import DataLoader, _is_weekday
 from tests.helpers.market_bars import (
     seed_daily_bars,
     seed_projections,
@@ -27,7 +30,6 @@ def temp_data_dir():
 def loader(temp_data_dir, monkeypatch):
     """Create DataLoader with temp directory (file-mode market_bars sidecar)."""
     monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
-    from dashboard.backend.services.data_loader import DataLoader
 
     return DataLoader(data_dir=temp_data_dir)
 
@@ -37,7 +39,6 @@ class TestDataLoader:
 
     def test_raises_for_missing_data_dir(self):
         """DataLoader raises when data directory does not exist."""
-        from dashboard.backend.services.data_loader import DataLoader
 
         with pytest.raises(ValueError, match="Data directory not found"):
             DataLoader(data_dir=Path("/nonexistent/path"))
@@ -253,7 +254,6 @@ class TestDataLoader:
         self, loader, temp_data_dir
     ):
         """Historical lookup must normalize symbols and reject blank/sentinel keys."""
-        from datetime import date, timedelta
 
         recent = (date.today() - timedelta(days=1)).isoformat()
         seed_daily_bars(
@@ -311,9 +311,6 @@ class TestDataLoader:
 
     def test_get_most_recent_trading_day_weekend_rolls_to_friday(self, monkeypatch):
         """Saturday/Sunday map to the prior Friday."""
-        from datetime import date
-
-        import dashboard.backend.services.data_loader as dl
 
         class _Sat:
             @classmethod
@@ -342,7 +339,6 @@ class TestDataLoader:
 
     def test_is_weekday_and_unparseable_dates(self):
         """Weekdays are open; weekends closed; unparseable dates stay kept."""
-        from dashboard.backend.services.data_loader import _is_weekday
 
         assert _is_weekday("2026-01-16") is True  # Friday
         assert _is_weekday("2026-01-17") is False  # Saturday
@@ -353,9 +349,6 @@ class TestDataLoader:
         self, loader, temp_data_dir, monkeypatch
     ):
         """Attach projection fields when present; skip missing/broken dates."""
-        from datetime import date
-
-        import dashboard.backend.services.data_loader as dl
 
         class _Now:
             @classmethod
@@ -409,9 +402,6 @@ class TestDataLoader:
 
     def test_needs_fetch_for_latest_trading_day(self, loader, temp_data_dir, monkeypatch):
         """True when latest trading day is missing; false when present."""
-        from datetime import date
-
-        import dashboard.backend.services.data_loader as dl
 
         class _Fri:
             @classmethod

@@ -1,6 +1,5 @@
 """OpenAI prompt path must coerce Inf/NaN instead of returning None."""
 
-import sys
 from unittest.mock import patch
 
 from src.analysis.ai_summarizer import AISummarizer
@@ -53,7 +52,7 @@ def test_openai_prompt_coerces_nonfinite_rollups(monkeypatch) -> None:
             self.chat = type("Chat", (), {"completions": FakeCompletions()})()
 
     openai_mod = type("openai", (), {"OpenAI": FakeClient})()
-    with patch.dict(sys.modules, {"openai": openai_mod}):
+    with patch("src.analysis.ai_summarizer.OpenAI", openai_mod.OpenAI):
         result = summarizer.generate_summary(analysis, exchange)
 
     assert result == "Markets were mixed."

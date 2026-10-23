@@ -9,6 +9,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import src.alerts.alert_paths as alert_paths
+import src.alerts.alert_worker as alert_worker
+
 from ..alerts.alert_engine import AlertEngine
 from ..alerts.alert_paths import (
     apply_alert_defaults,
@@ -19,6 +22,7 @@ from ..alerts.alert_paths import (
 )
 from ..alerts.alert_storage import AlertStorage
 from ..alerts.delivery_status import record_notifier_delivery
+from ..core.environment import load_environment
 from ..core.logger import configure_logging, get_logger
 from ..storage.database import database_enabled
 
@@ -67,16 +71,7 @@ def _find_alert(alerts: List[Dict[str, Any]], alert_id: str) -> Optional[Dict[st
 
 
 def _load_env() -> None:
-    try:
-        from dotenv import load_dotenv
-    except ImportError:
-        return
-    from ..alerts.alert_paths import user_config_dir
-
-    load_dotenv()
-    user_env = user_config_dir() / ".env"
-    if user_env.exists():
-        load_dotenv(user_env, override=True)
+    load_environment(alert_paths.user_config_dir() / ".env")
 
 
 def cmd_list(config_path: Optional[Path] = None) -> int:
@@ -138,11 +133,9 @@ def cmd_init(force: bool = False) -> int:
     try:
         dest = init_user_alerts_config(force=force)
     except FileExistsError:
-        from ..alerts.alert_paths import user_config_dir
-
         logger.error(
             "%s already exists. Use --force to overwrite.",
-            user_config_dir() / "alerts.json",
+            alert_paths.user_config_dir() / "alerts.json",
         )
         return 1
     except FileNotFoundError as exc:
@@ -255,13 +248,12 @@ def run_alert_test(
 
 def cmd_run(*, loop: bool = False, interval: Optional[int] = None) -> int:
     """Evaluate enabled watches once, or run on a schedule until interrupted."""
-    from ..alerts.alert_worker import run_worker_loop, run_worker_once
 
     if loop:
-        run_worker_loop(interval)
+        alert_worker.run_worker_loop(interval)
         return 0
 
-    run_worker_once()
+    alert_worker.run_worker_once()
     return 0
 
 

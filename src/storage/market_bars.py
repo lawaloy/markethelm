@@ -9,6 +9,9 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Sequence
 
+import pandas as pd
+
+import src.storage.projections_store as projections_store
 from src.core.logger import get_logger
 from src.utils.tickers import normalize_ticker
 
@@ -194,9 +197,8 @@ def _sidecar_connection(data_dir: str | Path) -> Iterator[sqlite3.Connection]:
     try:
         ensure_market_bars_schema(conn)
         # File-mode sidecar also hosts projections + daily_summaries.
-        from .projections_store import ensure_projections_schema
 
-        ensure_projections_schema(conn)
+        projections_store.ensure_projections_schema(conn)
         yield conn
         conn.commit()
     except Exception:
@@ -291,7 +293,6 @@ def market_bars_frame(
     data_dir: Optional[str | Path] = None,
 ):
     """Return a pandas DataFrame of bars for ``trade_date`` (possibly empty)."""
-    import pandas as pd
 
     rows = load_market_bars(trade_date, data_dir=data_dir)
     if not rows:

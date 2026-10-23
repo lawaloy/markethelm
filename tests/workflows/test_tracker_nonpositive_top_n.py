@@ -4,6 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from src.workflows.tracker import StockTrackerWorkflow
+
 
 @pytest.fixture
 def fetch_workflow(monkeypatch):
@@ -16,8 +18,6 @@ def fetch_workflow(monkeypatch):
         "src.alerts.alert_paths.get_enabled_watch_symbols",
         lambda: [],
     )
-
-    from src.workflows.tracker import StockTrackerWorkflow
 
     workflow = StockTrackerWorkflow.__new__(StockTrackerWorkflow)
     workflow.fetcher = MagicMock()

@@ -93,13 +93,8 @@ class RateLimiter:
         self.budget_window_sec = 60.0
         self.call_times = deque()
 
-        # Thread safety
-        try:
-            import threading
-
-            self.lock = threading.Lock()
-        except ImportError:
-            self.lock = None
+        # threading is a required standard-library dependency.
+        self.lock = threading.Lock()
 
     def wait_if_needed(self):
         """Wait if necessary to respect rate limits (thread-safe)."""

@@ -7,15 +7,10 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from src.utils.tickers import normalize_ticker
+import pandas as pd
 
-from .market_bars import (
-    _as_trade_date,
-    _finite_or_none,
-    _optional_text,
-    ensure_market_bars_schema,
-    market_bars_connection,
-)
+import src.storage.market_bars as market_bars
+from src.utils.tickers import normalize_ticker
 
 _PROJECTIONS_DDL = (
     """CREATE TABLE IF NOT EXISTS projections (
@@ -135,7 +130,7 @@ def _json_loads(text: Any, default: Any = None) -> Any:
 
 
 def ensure_projections_schema(conn: Any) -> None:
-    ensure_market_bars_schema(conn)
+    market_bars.ensure_market_bars_schema(conn)
     for statement in _PROJECTIONS_DDL:
         conn.execute(statement)
     for statement in _SUMMARIES_DDL:
@@ -160,24 +155,24 @@ def _row_from_projection(
     return (
         run_date,
         symbol,
-        _optional_text(stock.get("name")) or symbol,
-        _finite_or_none(stock.get("current_price")),
-        _finite_or_none(stock.get("target_low")),
-        _finite_or_none(stock.get("target_mid")),
-        _finite_or_none(stock.get("target_high")),
-        _finite_or_none(stock.get("expected_change_percent")),
-        _optional_text(stock.get("recommendation")),
-        _finite_or_none(stock.get("confidence")),
-        _optional_text(stock.get("trend")),
-        _finite_or_none(stock.get("momentum_score")),
-        _finite_or_none(stock.get("volatility_score")),
-        _optional_text(stock.get("risk_level")),
-        _optional_text(stock.get("reason")),
-        _as_trade_date(stock.get("projection_date"))
-        or _optional_text(stock.get("projection_date")),
+        market_bars._optional_text(stock.get("name")) or symbol,
+        market_bars._finite_or_none(stock.get("current_price")),
+        market_bars._finite_or_none(stock.get("target_low")),
+        market_bars._finite_or_none(stock.get("target_mid")),
+        market_bars._finite_or_none(stock.get("target_high")),
+        market_bars._finite_or_none(stock.get("expected_change_percent")),
+        market_bars._optional_text(stock.get("recommendation")),
+        market_bars._finite_or_none(stock.get("confidence")),
+        market_bars._optional_text(stock.get("trend")),
+        market_bars._finite_or_none(stock.get("momentum_score")),
+        market_bars._finite_or_none(stock.get("volatility_score")),
+        market_bars._optional_text(stock.get("risk_level")),
+        market_bars._optional_text(stock.get("reason")),
+        market_bars._as_trade_date(stock.get("projection_date"))
+        or market_bars._optional_text(stock.get("projection_date")),
         horizon_n,
-        _optional_text(stock.get("projection_calendar")),
-        _optional_text(stock.get("generated_at")),
+        market_bars._optional_text(stock.get("projection_calendar")),
+        market_bars._optional_text(stock.get("generated_at")),
         source,
         written_at,
     )
@@ -191,7 +186,7 @@ def upsert_projections(
     source: str = "tracker",
 ) -> int:
     """Upsert projection rows for one run date. Returns rows written."""
-    day = _as_trade_date(run_date)
+    day = market_bars._as_trade_date(run_date)
     if not day:
         raise ValueError(f"Invalid run_date for projections: {run_date!r}")
     if isinstance(projections, dict):
@@ -208,7 +203,7 @@ def upsert_projections(
             rows.append(row)
     if not rows:
         return 0
-    with market_bars_connection(data_dir=data_dir) as conn:
+    with market_bars.market_bars_connection(data_dir=data_dir) as conn:
         ensure_projections_schema(conn)
         conn.executemany(_UPSERT_PROJECTION_SQL, rows)
     return len(rows)
@@ -219,10 +214,10 @@ def load_projections(
     *,
     data_dir: Optional[str | Path] = None,
 ) -> List[Dict[str, Any]]:
-    day = _as_trade_date(run_date)
+    day = market_bars._as_trade_date(run_date)
     if not day:
         return []
-    with market_bars_connection(data_dir=data_dir) as conn:
+    with market_bars.market_bars_connection(data_dir=data_dir) as conn:
         ensure_projections_schema(conn)
         rows = conn.execute(
             """
@@ -245,8 +240,6 @@ def projections_frame(
     *,
     data_dir: Optional[str | Path] = None,
 ):
-    import pandas as pd
-
     rows = load_projections(run_date, data_dir=data_dir)
     if not rows:
         return pd.DataFrame()
@@ -268,7 +261,7 @@ def list_projection_dates(
         limit_n = 365
     if limit_n <= 0:
         return []
-    with market_bars_connection(data_dir=data_dir) as conn:
+    with market_bars.market_bars_connection(data_dir=data_dir) as conn:
         ensure_projections_schema(conn)
         rows = conn.execute(
             """
@@ -290,7 +283,7 @@ def upsert_daily_summary(
     source: str = "tracker",
 ) -> str:
     """Persist one day's summary document. Returns ``summary:YYYY-MM-DD``."""
-    day = _as_trade_date(summary_date)
+    day = market_bars._as_trade_date(summary_date)
     if not day:
         raise ValueError(f"Invalid summary_date: {summary_date!r}")
     payload = dict(summary_data)
@@ -313,7 +306,7 @@ def upsert_daily_summary(
     # Drop nested projections dict from stored payload once relational store owns it.
     stored = {k: v for k, v in payload.items() if k != "projections"}
     written_at = _utc_now()
-    with market_bars_connection(data_dir=data_dir) as conn:
+    with market_bars.market_bars_connection(data_dir=data_dir) as conn:
         ensure_projections_schema(conn)
         conn.execute(
             _UPSERT_SUMMARY_SQL,
@@ -336,10 +329,10 @@ def load_daily_summary(
     *,
     data_dir: Optional[str | Path] = None,
 ) -> Optional[Dict[str, Any]]:
-    day = _as_trade_date(summary_date)
+    day = market_bars._as_trade_date(summary_date)
     if not day:
         return None
-    with market_bars_connection(data_dir=data_dir) as conn:
+    with market_bars.market_bars_connection(data_dir=data_dir) as conn:
         ensure_projections_schema(conn)
         row = conn.execute(
             """
@@ -389,7 +382,7 @@ def list_summary_dates(
         limit_n = 365
     if limit_n <= 0:
         return []
-    with market_bars_connection(data_dir=data_dir) as conn:
+    with market_bars.market_bars_connection(data_dir=data_dir) as conn:
         ensure_projections_schema(conn)
         rows = conn.execute(
             """

@@ -3,6 +3,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
 from src.storage.database import init_database
 from src.storage.health import record_worker_heartbeat, worker_health
 
@@ -27,7 +28,6 @@ def test_worker_health_running_status_is_not_ok(db) -> None:
 
 def test_worker_probe_503s_on_fresh_running_heartbeat(db) -> None:
     record_worker_heartbeat("w1", "running")
-    from dashboard.backend.main import app
 
     response = TestClient(app).get("/health/worker")
     assert response.status_code == 503

@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
 from src.alerts.alert_worker import run_db_worker_cycle
 from src.storage.database import init_database
 from src.storage.health import latest_worker_heartbeat, record_worker_heartbeat
@@ -38,8 +39,6 @@ def test_run_db_worker_cycle_records_error_heartbeat_and_probe_503s(db) -> None:
     assert heartbeat["worker_id"] == "w1"
     assert heartbeat["status"] == "error"
     assert heartbeat["details"] == {"error": "RuntimeError"}
-
-    from dashboard.backend.main import app
 
     response = TestClient(app).get("/health/worker")
     assert response.status_code == 503

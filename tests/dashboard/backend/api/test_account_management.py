@@ -1,9 +1,11 @@
 """Authenticated password change and account deletion API coverage."""
 
 import pytest
+from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
 from src.storage.alert_watches import sync_watches_from_config
-from src.storage.database import get_connection
+from src.storage.database import get_connection, init_database
 from src.storage.user_alerts import save_user_alerts_config
 
 
@@ -13,12 +15,8 @@ def client(tmp_path, monkeypatch):
         "MARKETHELM_DATABASE_URL", f"sqlite:///{(tmp_path / 'account.db').as_posix()}"
     )
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-    from src.storage.database import init_database
 
     init_database()
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
 
     return TestClient(app)
 

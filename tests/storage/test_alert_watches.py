@@ -1,6 +1,7 @@
 """Unit tests for normalized alert watches."""
 
 import json
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -210,7 +211,6 @@ class TestAlertWatches:
 class TestAlertDeliveryLog:
     def test_record_delivery_prunes_to_max_per_user(self, db_user):
         """Oldest rows are deleted once a user exceeds MAX_DELIVERY_LOG."""
-        from datetime import datetime, timedelta, timezone
 
         other = create_user("other-delivery@example.com", "password123")["id"]
         base = datetime(2026, 7, 1, tzinfo=timezone.utc)

@@ -6,7 +6,14 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from fastapi.testclient import TestClient
 
+import dashboard.backend.api.history
+import dashboard.backend.api.market
+import dashboard.backend.api.projections
+import dashboard.backend.api.stocks
+from dashboard.backend.main import app
+from dashboard.backend.services.data_loader import DataLoader
 from tests.helpers.market_bars import seed_simple_bars, seed_summary
 
 
@@ -15,7 +22,6 @@ def summary_client(monkeypatch):
     monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
     tmp = tempfile.mkdtemp()
     data_dir = Path(tmp)
-    from dashboard.backend.services.data_loader import DataLoader
 
     seed_simple_bars(
         data_dir,
@@ -29,10 +35,6 @@ def summary_client(monkeypatch):
     )
 
     loader = DataLoader(data_dir=data_dir)
-    import dashboard.backend.api.history
-    import dashboard.backend.api.market
-    import dashboard.backend.api.projections
-    import dashboard.backend.api.stocks
 
     with patch.object(dashboard.backend.api.market, "get_data_loader", return_value=loader):
         with patch.object(
@@ -42,10 +44,6 @@ def summary_client(monkeypatch):
                 with patch.object(
                     dashboard.backend.api.history, "get_data_loader", return_value=loader
                 ):
-                    from fastapi.testclient import TestClient
-
-                    from dashboard.backend.main import app
-
                     try:
                         yield TestClient(app), data_dir
                     finally:

@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
+import dashboard.backend.api.market
 from dashboard.backend.main import app
 
 
@@ -32,7 +33,6 @@ def _dirty_daily() -> pd.DataFrame:
 
 def test_market_overview_skips_non_numeric_change_percent(client) -> None:
     """Object-dtype change_percent previously TypeError'd comparisons → 500."""
-    import dashboard.backend.api.market
 
     mock_loader = MagicMock()
     mock_loader.get_latest_date.return_value = "2026-01-15"
@@ -56,7 +56,6 @@ def test_market_overview_skips_non_numeric_change_percent(client) -> None:
 
 def test_market_movers_skips_non_numeric_change_percent(client) -> None:
     """nlargest on object-dtype change_percent previously TypeError'd → 500."""
-    import dashboard.backend.api.market
 
     mock_loader = MagicMock()
     mock_loader.load_daily_data.return_value = _dirty_daily()

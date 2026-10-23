@@ -1,6 +1,10 @@
 """Hosted GET /api/alerts/config must soft-fail corrupt stored JSON."""
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+from src.storage.database import get_connection, init_database
 
 
 @pytest.fixture
@@ -8,17 +12,12 @@ def multi_user_env(tmp_path, monkeypatch):
     db_path = tmp_path / "corrupt-config.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-    from src.storage.database import init_database
 
     init_database()
 
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 
@@ -39,8 +38,6 @@ def _register(client, email: str = "corrupt@example.com") -> tuple[str, str]:
 def test_get_config_soft_fails_corrupt_hosted_row(client, multi_user_env, blob) -> None:
     token, user_id = _register(client)
     headers = {"Authorization": f"Bearer {token}"}
-
-    from src.storage.database import get_connection
 
     with get_connection() as conn:
         conn.execute(

@@ -8,12 +8,14 @@ try:
 except ImportError:  # run as a script from dashboard/backend: repo root not on sys.path yet
     import _bootstrap
 
+import math
 import os
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import List, Optional
 
+import uvicorn
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
@@ -22,6 +24,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+import dashboard.backend.services.data_loader as data_loader
+import src.alerts.alert_worker as alert_worker
+import src.storage.database as storage_database
+import src.storage.health as storage_health
 from dashboard.backend.api import alerts, auth, history, market, projections, refresh, stocks
 from dashboard.backend.api.market import get_market_summary
 from dashboard.backend.auth import require_user_id
@@ -37,7 +43,6 @@ REPO_ROOT = _bootstrap.REPO_ROOT
 
 def _coerce_startup_triggered(raw) -> int:
     """Coerce startup triggered count; Inf/NaN must not log as a real trigger."""
-    import math
 
     if isinstance(raw, bool):
         return int(raw)
@@ -51,9 +56,7 @@ def _coerce_startup_triggered(raw) -> int:
 
 def _startup_alert_check() -> None:
     try:
-        from src.alerts.alert_worker import run_check_once
-
-        result = run_check_once()
+        result = alert_worker.run_check_once()
         triggered = _coerce_startup_triggered(result.get("triggered", 0))
         if triggered:
             logger.info("Startup alert check triggered %s watch(es)", triggered)
@@ -64,9 +67,7 @@ def _startup_alert_check() -> None:
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     try:
-        from src.storage.database import init_database
-
-        init_database()
+        storage_database.init_database()
     except Exception as exc:
         logger.warning("Database init skipped: %s", exc)
     threading.Thread(target=_startup_alert_check, daemon=True).start()
@@ -168,13 +169,10 @@ async def health_live():
 
 @app.get("/health/ready")
 async def health_ready():
-    from src.storage.database import database_enabled
-
-    if not database_enabled():
+    if not storage_database.database_enabled():
         return {"status": "ready", "database": "disabled"}
-    from src.storage.health import database_health, latest_worker_heartbeat
 
-    database = database_health()
+    database = storage_health.database_health()
     payload = {
         "status": "ready" if database["ok"] else "not_ready",
         "database": database,
@@ -182,7 +180,7 @@ async def health_ready():
     }
     if database["ok"]:
         try:
-            payload["worker"] = latest_worker_heartbeat()
+            payload["worker"] = storage_health.latest_worker_heartbeat()
         except Exception:
             payload["worker"] = None
     if not database["ok"]:
@@ -192,14 +190,12 @@ async def health_ready():
 
 @app.get("/health/worker")
 async def health_worker():
-    from src.storage.database import database_enabled
-
-    if not database_enabled():
+    if not storage_database.database_enabled():
         return {"status": "disabled"}
-    from src.alerts.alert_worker import resolve_interval_seconds
-    from src.storage.health import worker_health
 
-    health = worker_health(stale_after_seconds=resolve_interval_seconds() * 2 + 30)
+    health = storage_health.worker_health(
+        stale_after_seconds=alert_worker.resolve_interval_seconds() * 2 + 30
+    )
     payload = {"status": "healthy" if health["ok"] else "unhealthy", **health}
     if not health["ok"]:
         return JSONResponse(payload, status_code=503)
@@ -218,11 +214,10 @@ async def data_info(_user_id: Optional[str] = Depends(require_user_id)):
     Hosted mode requires auth so anonymous clients cannot read data_dir / fetch
     readiness. File mode (``require_user_id`` → ``None``) stays open.
     """
-    from dashboard.backend.services.data_loader import get_data_loader, get_most_recent_trading_day
 
     try:
-        loader = get_data_loader()
-        target_trading_day = get_most_recent_trading_day()
+        loader = data_loader.get_data_loader()
+        target_trading_day = data_loader.get_most_recent_trading_day()
         return {
             "data_dir": str(loader.data_dir),
             "latest_date": loader.get_latest_date(),
@@ -287,8 +282,6 @@ else:
 
 
 if __name__ == "__main__":
-    import uvicorn
-
     reload = os.getenv("UVICORN_RELOAD", "").lower() in {"1", "true", "yes"}
     uvicorn.run(
         "dashboard.backend.main:app", host="0.0.0.0", port=8000, reload=reload, log_config=None

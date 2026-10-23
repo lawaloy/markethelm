@@ -16,6 +16,8 @@ from urllib.parse import urlparse
 
 import requests
 
+import src.storage.database as database
+
 from ...core.logger import get_logger
 from .delivery_retry import DeliveryAttempt, deliver_with_retry, is_retriable_http_status
 
@@ -196,11 +198,10 @@ def _allow_alert_smtp_overrides(alert: Optional[Dict[str, Any]]) -> bool:
     spoof From (mirrors webhook/recipient ``_allow_env_*`` isolation). Opt in
     with ``_allow_alert_smtp=True`` for intentional self-host style overrides.
     """
-    from src.storage.database import database_enabled
 
     if not alert:
         return True
-    return alert.get("_allow_alert_smtp", not database_enabled()) is not False
+    return alert.get("_allow_alert_smtp", not database.database_enabled()) is not False
 
 
 def _platform_from_address(alert: Optional[Dict[str, Any]] = None) -> Optional[str]:
@@ -229,9 +230,8 @@ def _resolve_recipients(alert: Dict[str, Any]) -> List[str]:
     (mirrors webhook ``_allow_env_webhook`` isolation). Opt in with
     ``_allow_env_email=True`` when intentionally using the shared env mailbox.
     """
-    from src.storage.database import database_enabled
 
-    allow_env_email = alert.get("_allow_env_email", not database_enabled()) is not False
+    allow_env_email = alert.get("_allow_env_email", not database.database_enabled()) is not False
     env_recipients = parse_recipients(os.environ.get("ALERT_EMAIL_TO")) if allow_env_email else []
     return parse_recipients(alert.get("email_to")) or env_recipients
 

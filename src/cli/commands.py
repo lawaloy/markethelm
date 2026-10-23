@@ -4,10 +4,14 @@ MarketHelm CLI — command-line interface for the daily tracker workflow.
 
 from __future__ import annotations
 
+import argparse
 import math
 import sys
 from datetime import datetime
 from typing import Any
+
+import src.cli.alerts_commands as alerts_commands
+import src.cli.backtest_commands as backtest_commands
 
 from ..core.logger import configure_logging, get_logger
 from ..workflows.tracker import StockTrackerWorkflow
@@ -222,18 +226,13 @@ def display_results(result: dict):
 
 def main():
     """CLI entry point for MarketHelm (see also console script `markethelm`)."""
-    import argparse
 
     if len(sys.argv) > 1 and sys.argv[1] == "alerts":
-        from .alerts_commands import main as alerts_main
-
-        alerts_main(sys.argv[2:])
+        alerts_commands.main(sys.argv[2:])
         return
 
     if len(sys.argv) > 1 and sys.argv[1] == "backtest":
-        from .backtest_commands import main as backtest_main
-
-        raise SystemExit(backtest_main(sys.argv[2:]))
+        raise SystemExit(backtest_commands.main(sys.argv[2:]))
 
     configure_logging()
 

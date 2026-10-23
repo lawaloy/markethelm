@@ -6,10 +6,13 @@ ran first, each dashboard XHR would burn two global slots and a limit-1
 window would 429 the real login after a single preflight.
 """
 
+from fastapi.testclient import TestClient
 from starlette.requests import Request
 
 import dashboard.backend.rate_limit as rate_limit
+from dashboard.backend.main import app
 from dashboard.backend.rate_limit import RateLimitRule, check_rate_limits
+from src.storage.database import init_database
 
 
 def _api_request(path: str, method: str = "OPTIONS") -> Request:
@@ -65,12 +68,8 @@ def test_cors_preflight_does_not_consume_global_login_budget(tmp_path, monkeypat
     monkeypatch.setenv("MARKETHELM_RATE_LIMIT_REGISTER", "1000")
     monkeypatch.setenv("MARKETHELM_RATE_LIMIT_AUTH_EMAIL", "1000")
     monkeypatch.setenv("MARKETHELM_RATE_LIMIT_EXPENSIVE", "1000")
-    from src.storage.database import init_database
 
     init_database()
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
 
     client = TestClient(app)
     preflight_headers = {

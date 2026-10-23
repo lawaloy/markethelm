@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from dashboard.backend.dashboard_cli import parse_port
+from dashboard.backend.dashboard_cli import main, parse_port
 
 
 @pytest.mark.parametrize(
@@ -29,8 +29,6 @@ def test_dashboard_cli_passes_env_to_uvicorn(monkeypatch) -> None:
     monkeypatch.setenv("UVICORN_RELOAD", "yes")
 
     with patch("uvicorn.run") as run:
-        from dashboard.backend.dashboard_cli import main
-
         main()
 
     run.assert_called_once_with(
@@ -47,8 +45,6 @@ def test_dashboard_cli_defaults_and_reload_false(monkeypatch) -> None:
     monkeypatch.setenv("UVICORN_RELOAD", "no")
 
     with patch("uvicorn.run") as run:
-        from dashboard.backend.dashboard_cli import main
-
         main()
 
     run.assert_called_once_with(
@@ -65,8 +61,6 @@ def test_dashboard_cli_falls_back_when_port_invalid(monkeypatch) -> None:
     monkeypatch.delenv("UVICORN_RELOAD", raising=False)
 
     with patch("uvicorn.run") as run:
-        from dashboard.backend.dashboard_cli import main
-
         main()
 
     run.assert_called_once_with(

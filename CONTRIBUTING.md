@@ -261,6 +261,11 @@ CLI/Web/API layers consume workflows for their specific presentation needs.
 <details>
 <summary><b>Imports</b></summary>
 
+Keep Python imports at module scope, including in tests. Place optional dependency
+imports in a module-level `try` / `except ImportError` block. Use module references
+or extract shared helpers to avoid circular imports. The test suite checks this
+convention, and Pylint's `import-outside-toplevel` check should stay clean.
+
 ```python
 # Standard library
 import os

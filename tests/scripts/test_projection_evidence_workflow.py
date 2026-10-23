@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 
 import yaml
+
+from src.storage.market_bars import upsert_market_bars
+from src.storage.projections_store import upsert_projections
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "schedule.yml"
@@ -82,8 +86,6 @@ def test_projection_evidence_requires_fresh_bars_and_projection_rows() -> None:
 
 
 def _load_script(name: str):
-    import importlib.util
-
     module_path = REPO_ROOT / "scripts" / name
     spec = importlib.util.spec_from_file_location(name.removesuffix(".py"), module_path)
     assert spec is not None and spec.loader is not None
@@ -104,7 +106,6 @@ def test_assert_projection_date_script_reports_missing(tmp_path: Path) -> None:
 
 def test_assert_market_bar_date_script_succeeds_when_present(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
-    from src.storage.market_bars import upsert_market_bars
 
     upsert_market_bars(
         [{"symbol": "AAPL", "close": 150.0}],
@@ -117,7 +118,6 @@ def test_assert_market_bar_date_script_succeeds_when_present(tmp_path: Path, mon
 
 def test_assert_projection_date_script_succeeds_when_present(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
-    from src.storage.projections_store import upsert_projections
 
     upsert_projections(
         [{"symbol": "AAPL", "current_price": 150.0}],
@@ -133,7 +133,6 @@ def test_assert_market_bar_date_fails_when_present_outside_limit(
 ) -> None:
     """CI --limit is a newest-first window, not a full-store membership check."""
     monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
-    from src.storage.market_bars import upsert_market_bars
 
     upsert_market_bars(
         [{"symbol": "AAPL", "close": 149.0}],
@@ -178,7 +177,6 @@ def test_assert_projection_date_fails_when_present_outside_limit(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.delenv("MARKETHELM_DATABASE_URL", raising=False)
-    from src.storage.projections_store import upsert_projections
 
     upsert_projections(
         [{"symbol": "AAPL", "current_price": 149.0}],
@@ -200,8 +198,6 @@ def test_assert_projection_date_fails_when_present_outside_limit(
 
 
 def test_print_qualified_reads_assessment_bool(tmp_path: Path) -> None:
-    import importlib.util
-
     module_path = REPO_ROOT / "scripts" / "projection_baseline.py"
     spec = importlib.util.spec_from_file_location("projection_baseline", module_path)
     assert spec is not None and spec.loader is not None

@@ -12,6 +12,11 @@ from dotenv import load_dotenv
 
 from ..core.logger import get_logger
 
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+
 # Load environment variables
 load_dotenv()
 
@@ -134,7 +139,8 @@ class AISummarizer:
             return self.generate_demo_summary(analysis, exchange_comparison)
 
         try:
-            from openai import OpenAI
+            if OpenAI is None:
+                raise ImportError("The optional OpenAI package is not installed")
 
             client = OpenAI(api_key=self.api_key)
 

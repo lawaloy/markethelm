@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
 from src.alerts.alert_worker import run_db_worker_cycle
 from src.storage.database import init_database
 from src.storage.health import latest_worker_heartbeat, record_worker_heartbeat
@@ -46,8 +47,6 @@ def test_run_db_worker_cycle_success_clears_running_heartbeat_and_probe_200s(db)
         "jobs": {"evaluated": 2, "delivered": 1, "failed": 0},
     }
 
-    from dashboard.backend.main import app
-
     response = TestClient(app).get("/health/worker")
     assert response.status_code == 200
     payload = response.json()
@@ -60,8 +59,6 @@ def test_run_db_worker_cycle_keeps_last_success_healthy_while_next_tick_runs(db)
     """A routine cycle must not create a transient readiness outage."""
     previous_details = {"enqueued": 1, "jobs": {"delivered": 1}}
     record_worker_heartbeat("w1", "healthy", previous_details)
-
-    from dashboard.backend.main import app
 
     observed_during_tick = {}
 
@@ -124,8 +121,6 @@ def test_run_db_worker_cycle_queue_crash_records_error_heartbeat_and_probe_503s(
     assert heartbeat["worker_id"] == "w1"
     assert heartbeat["status"] == "error"
     assert heartbeat["details"] == {"error": "RuntimeError"}
-
-    from dashboard.backend.main import app
 
     response = TestClient(app).get("/health/worker")
     assert response.status_code == 503

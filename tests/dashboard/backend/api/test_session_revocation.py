@@ -1,6 +1,10 @@
 """Server-side session revocation behavior."""
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+from src.storage.database import init_database
 
 
 @pytest.fixture
@@ -9,12 +13,8 @@ def client(tmp_path, monkeypatch):
         "MARKETHELM_DATABASE_URL", f"sqlite:///{(tmp_path / 'sessions.db').as_posix()}"
     )
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-    from src.storage.database import init_database
 
     init_database()
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
 
     return TestClient(app)
 

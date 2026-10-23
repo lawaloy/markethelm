@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.workflows.tracker import StockTrackerWorkflow
+
 
 @pytest.fixture
 def workflow():
@@ -15,7 +17,6 @@ def workflow():
         patch("src.workflows.tracker.AlertEngine") as mock_alert,
     ):
         mock_alert.from_config.return_value = None
-        from src.workflows.tracker import StockTrackerWorkflow
 
         instance = StockTrackerWorkflow(include_profile=False)
         instance.analyzer.analyze_daily_data = MagicMock(return_value={"ok": True})

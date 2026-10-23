@@ -7,6 +7,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List
 
+import src.services.data_fetcher as data_fetcher
+from dashboard.backend.services import data_loader
+from src.core.environment import load_environment
 from src.core.logger import get_logger
 from src.storage.market_bars import latest_saved_quotes
 from src.utils.tickers import normalize_ticker
@@ -19,19 +22,16 @@ _MAX_WORKERS = 4
 
 def _load_env() -> None:
     try:
-        from src.cli.alerts_commands import _load_env as cli_load_env
-
-        cli_load_env()
+        load_environment()
     except Exception:
         pass
 
 
 def saved_quote_details() -> Dict[str, Dict[str, object]]:
     """Saved quotes with their provider time, in file or hosted DB mode."""
-    from dashboard.backend.services.data_loader import get_data_loader
 
     try:
-        loader = get_data_loader()
+        loader = data_loader.get_data_loader()
         data_dir = loader.data_dir
         if not isinstance(data_dir, (str, Path)):
             return {}
@@ -73,9 +73,7 @@ def resolve_symbol_prices(
 
     _load_env()
     try:
-        from src.services.data_fetcher import StockDataFetcher
-
-        fetcher = StockDataFetcher(include_profile=False)
+        fetcher = data_fetcher.StockDataFetcher(include_profile=False)
     except Exception as exc:
         logger.warning("Live quote fetch unavailable: %s", exc)
         return prices

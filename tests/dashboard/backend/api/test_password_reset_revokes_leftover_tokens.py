@@ -3,9 +3,11 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
 from src.storage.account_tokens import RESET_PASSWORD, _digest
-from src.storage.database import get_connection
+from src.storage.database import get_connection, init_database
 
 
 @pytest.fixture
@@ -16,12 +18,8 @@ def client(tmp_path, monkeypatch):
     )
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
     monkeypatch.setenv("MARKETHELM_PUBLIC_URL", "https://staging.example.com")
-    from src.storage.database import init_database
 
     init_database()
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
 
     return TestClient(app)
 

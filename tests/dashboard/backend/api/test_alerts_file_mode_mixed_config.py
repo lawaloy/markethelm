@@ -17,6 +17,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from dashboard.backend.main import app
+
 
 @pytest.fixture
 def file_mode(tmp_path: Path, monkeypatch):
@@ -38,8 +40,6 @@ def file_mode(tmp_path: Path, monkeypatch):
 
 @pytest.fixture
 def client():
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 

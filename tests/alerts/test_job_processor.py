@@ -1,6 +1,7 @@
 """Tests for alert job processor (evaluate + deliver)."""
 
 import json
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
@@ -412,7 +413,6 @@ class TestJobProcessor:
 
     def test_evaluate_skips_cooldown_with_naive_last_triggered(self, db_user):
         """Naive ISO markers must not TypeError the whole evaluate job."""
-        from datetime import datetime, timedelta, timezone
 
         config = _watch_config()
         config["alerts"][0]["cooldown_minutes"] = 60

@@ -3,8 +3,11 @@
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+from fastapi.testclient import TestClient
 
+import dashboard.backend.api.market
 from dashboard.backend.api.market import _overview_index_key
+from dashboard.backend.main import app
 
 
 def test_overview_index_key_skips_blank_and_nonfinite() -> None:
@@ -18,7 +21,6 @@ def test_overview_index_key_skips_blank_and_nonfinite() -> None:
 
 def test_market_overview_skips_nan_and_none_index_names() -> None:
     """NaN/None index_name previously AttributeError'd on .replace → HTTP 500."""
-    import dashboard.backend.api.market
 
     mock_loader = MagicMock()
     mock_loader.get_latest_date.return_value = "2026-01-15"
@@ -30,10 +32,6 @@ def test_market_overview_skips_nan_and_none_index_names() -> None:
         }
     )
     with patch.object(dashboard.backend.api.market, "get_data_loader", return_value=mock_loader):
-        from fastapi.testclient import TestClient
-
-        from dashboard.backend.main import app
-
         client = TestClient(app)
         response = client.get("/api/market/overview")
 

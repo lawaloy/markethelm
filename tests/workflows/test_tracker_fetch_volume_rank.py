@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.workflows.tracker import StockTrackerWorkflow, _volume_sort_key
+
 
 @pytest.fixture
 def fetch_workflow():
@@ -18,15 +20,12 @@ def fetch_workflow():
         ),
     ):
         mock_alert.from_config.return_value = None
-        from src.workflows.tracker import StockTrackerWorkflow
 
         workflow = StockTrackerWorkflow(include_profile=False)
         yield workflow
 
 
 def test_volume_sort_key_ranks_finite_and_demotes_poison() -> None:
-    from src.workflows.tracker import _volume_sort_key
-
     assert _volume_sort_key({"volume": 1_000}) == 1_000.0
     assert _volume_sort_key({"volume": None}) == float("-inf")
     assert _volume_sort_key({"volume": float("inf")}) == float("-inf")

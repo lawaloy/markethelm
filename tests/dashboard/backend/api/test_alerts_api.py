@@ -7,8 +7,15 @@ import time
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pandas as pd
 import pytest
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
+
+from dashboard.backend.api.alerts import _normalize_config
+from dashboard.backend.main import app
+from src.alerts.alert_storage import AlertStorage
 
 
 @pytest.fixture
@@ -22,10 +29,6 @@ def alerts_config_dir(tmp_path: Path, monkeypatch):
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 
@@ -347,8 +350,6 @@ class TestAlertsConfigAPI:
         assert captured["symbols"] == ["AAPL", "MSFT"]
 
     def test_alert_symbol_catalog_skips_invalid_tracked_tokens(self, client, monkeypatch):
-        import pandas as pd
-
         monkeypatch.setattr(
             "dashboard.backend.api.alerts.build_symbol_catalog",
             lambda: (["AAPL"], {"AAPL": "Apple Inc."}),
@@ -373,7 +374,6 @@ class TestAlertsConfigAPI:
 
     def test_get_status_normalizes_tracked_symbols(self, client, alerts_config_dir, monkeypatch):
         """Status tracked list strips padding and drops None/NaN sentinels."""
-        import pandas as pd
 
         loader = MagicMock()
         loader.get_latest_date.return_value = "2026-01-15"
@@ -402,8 +402,6 @@ class TestAlertsConfigAPI:
         assert r.json()["tracked_symbols"] == ["AAPL", "MSFT"]
 
     def test_get_status(self, client, alerts_config_dir, tmp_path, monkeypatch):
-        from src.alerts.alert_storage import AlertStorage
-
         storage = AlertStorage(data_dir=tmp_path)
         storage.record_delivery(
             alert_id="rule1",
@@ -536,10 +534,6 @@ class TestAlertsConfigAPI:
         assert r.json()["detail"] == "Alert check failed."
 
     def test_normalize_config_rejects_non_list_alerts_and_normalizes_format(self):
-        from fastapi import HTTPException
-
-        from dashboard.backend.api.alerts import _normalize_config
-
         with pytest.raises(HTTPException) as exc_info:
             _normalize_config({"defaults": {}, "alerts": {"id": "not-a-list"}})
         assert exc_info.value.status_code == 400
@@ -553,7 +547,6 @@ class TestAlertsConfigAPI:
 @pytest.mark.parametrize("method", ["get", "post"])
 def test_slow_quote_lookup_does_not_block_other_requests(monkeypatch, method):
     """Live quote latency must not stall the dashboard's async request loop."""
-    from dashboard.backend.main import app
 
     started = threading.Event()
     release = threading.Event()

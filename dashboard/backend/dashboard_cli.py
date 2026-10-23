@@ -2,6 +2,8 @@
 
 import os
 
+import uvicorn
+
 
 def parse_port(raw: str | None, default: int = 8000) -> int:
     """Parse PORT; invalid or out-of-range values fall back to default."""
@@ -15,8 +17,6 @@ def parse_port(raw: str | None, default: int = 8000) -> int:
 
 
 def main() -> None:
-    import uvicorn
-
     host = os.getenv("HOST", "0.0.0.0")
     port = parse_port(os.getenv("PORT"))
     uvicorn.run(

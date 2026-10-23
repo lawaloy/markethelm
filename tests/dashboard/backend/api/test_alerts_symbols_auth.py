@@ -5,6 +5,10 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+from src.storage.database import init_database
 
 
 @pytest.fixture
@@ -12,17 +16,12 @@ def multi_user_env(tmp_path, monkeypatch):
     db_path = tmp_path / "symbols-auth.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-    from src.storage.database import init_database
 
     init_database()
 
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 

@@ -1,5 +1,6 @@
 """Tests for analysis analyzer module."""
 
+import json
 import math
 import unittest
 from datetime import date
@@ -250,8 +251,6 @@ if __name__ == "__main__":
 
     def test_analyze_skips_nan_rows_in_top_lists(self):
         """Non-finite change_percent/volume must not appear in top_* lists."""
-        import json
-        import math
 
         rows = [
             {

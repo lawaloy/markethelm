@@ -89,7 +89,7 @@ def test_load_index_symbol_names_normalizes_and_skips_bad_symbols():
     fake_module = MagicMock()
     fake_module.PyTickerSymbols = _FakePyTickerSymbols
 
-    with patch.dict("sys.modules", {"pytickersymbols": fake_module}):
+    with patch("dashboard.backend.api.history.PyTickerSymbols", fake_module.PyTickerSymbols):
         names = load_index_symbol_names()
 
     assert names == {"AAPL": "Apple Inc.", "MSFT": "Microsoft"}
@@ -115,7 +115,7 @@ def test_load_index_symbol_names_reuses_static_provider_catalog():
     fake_module = MagicMock()
     fake_module.PyTickerSymbols = _FakePyTickerSymbols
 
-    with patch.dict("sys.modules", {"pytickersymbols": fake_module}):
+    with patch("dashboard.backend.api.history.PyTickerSymbols", fake_module.PyTickerSymbols):
         first = load_index_symbol_names()
         first["AAPL"] = "mutated"
         second = load_index_symbol_names()

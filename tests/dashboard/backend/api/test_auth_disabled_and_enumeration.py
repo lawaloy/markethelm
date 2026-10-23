@@ -1,14 +1,14 @@
 """Single-user mode and recovery probes must fail closed without leaking accounts."""
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+from src.storage.database import init_database
 
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 
@@ -19,12 +19,8 @@ def hosted_client(tmp_path, monkeypatch):
         f"sqlite:///{(tmp_path / 'enum.db').as_posix()}",
     )
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-    from src.storage.database import init_database
 
     init_database()
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
 
     return TestClient(app)
 

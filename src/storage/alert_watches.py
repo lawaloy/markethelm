@@ -5,12 +5,12 @@ from __future__ import annotations
 import json
 import math
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
+import src.alerts.alert_rules as alert_rules
+import src.storage.database as database
 from src.utils.tickers import normalize_ticker
-
-from .database import get_connection
 
 MAX_DELIVERY_LOG = 100
 # Cap alerts per config so one tenant cannot fan out unbounded watch rows /
@@ -82,41 +82,30 @@ def _coerce_threshold(raw_value: Any, alert_id: str, *, label: str = "price thre
 
 
 def _coerce_rsi_period(raw_value: Any, alert_id: str) -> int:
-    from src.alerts.alert_rules import (
-        DEFAULT_RSI_PERIOD,
-        MAX_RSI_PERIOD,
-        MIN_RSI_PERIOD,
-    )
-
     if raw_value is None:
-        return DEFAULT_RSI_PERIOD
+        return alert_rules.DEFAULT_RSI_PERIOD
     try:
         period = int(raw_value)
     except (TypeError, ValueError) as exc:
         raise InvalidAlertWatchConfig(f"Alert '{alert_id}' has an invalid RSI period.") from exc
-    if period < MIN_RSI_PERIOD or period > MAX_RSI_PERIOD:
+    if period < alert_rules.MIN_RSI_PERIOD or period > alert_rules.MAX_RSI_PERIOD:
         raise InvalidAlertWatchConfig(f"Alert '{alert_id}' has an invalid RSI period.")
     return period
 
 
 def _validate_compound_condition(condition: Dict[str, Any], alert_id: str) -> None:
-    from src.alerts.alert_rules import (
-        COMPOUND_OPS,
-        LEAF_CONDITION_TYPES,
-        MAX_COMPOUND_LEAVES,
-    )
-
     op = str(condition.get("op") or "").strip().lower()
-    if op not in COMPOUND_OPS:
+    if op not in alert_rules.COMPOUND_OPS:
         raise InvalidAlertWatchConfig(
             f"Alert '{alert_id}' compound rule must use op 'and' or 'or'."
         )
     leaves = condition.get("conditions")
     if not isinstance(leaves, list) or not leaves:
         raise InvalidAlertWatchConfig(f"Alert '{alert_id}' compound rule must include conditions.")
-    if len(leaves) > MAX_COMPOUND_LEAVES:
+    if len(leaves) > alert_rules.MAX_COMPOUND_LEAVES:
         raise InvalidAlertWatchConfig(
-            f"Alert '{alert_id}' compound rule exceeds {MAX_COMPOUND_LEAVES} conditions."
+            f"Alert '{alert_id}' compound rule exceeds "
+            f"{alert_rules.MAX_COMPOUND_LEAVES} conditions."
         )
     for leaf in leaves:
         if not isinstance(leaf, dict):
@@ -128,7 +117,7 @@ def _validate_compound_condition(condition: Dict[str, Any], alert_id: str) -> No
             raise InvalidAlertWatchConfig(
                 f"Alert '{alert_id}' does not support nested compound rules."
             )
-        if leaf_type not in LEAF_CONDITION_TYPES:
+        if leaf_type not in alert_rules.LEAF_CONDITION_TYPES:
             raise InvalidAlertWatchConfig(
                 f"Alert '{alert_id}' compound rule has an unsupported condition type."
             )
@@ -230,9 +219,8 @@ def _rows_from_config(user_id: str, config: Dict[str, Any], updated_at: str) -> 
             # Index single-symbol compounds on the shared ticker so the hosted
             # evaluate_symbol queue can fire them; multi-symbol compounds stay
             # off the queue (same as screening_match).
-            from src.alerts.alert_rules import primary_watch_symbol
 
-            symbol = primary_watch_symbol(condition)
+            symbol = alert_rules.primary_watch_symbol(condition)
         cooldown_minutes = _coerce_cooldown(alert.get("cooldown_minutes"), alert_id)
         rows.append(
             (
@@ -307,12 +295,12 @@ def sync_watches_from_config(
         _replace_watches(connection, user_id, rows)
         return
 
-    with get_connection() as conn:
+    with database.get_connection() as conn:
         _replace_watches(conn, user_id, rows)
 
 
 def list_enabled_symbols() -> List[str]:
-    with get_connection() as conn:
+    with database.get_connection() as conn:
         rows = conn.execute("""
             SELECT DISTINCT symbol FROM alert_watches
             WHERE enabled = 1 AND symbol IS NOT NULL AND symbol != ''
@@ -325,7 +313,7 @@ def list_watches_for_symbol(symbol: str) -> List[Dict[str, Any]]:
     normalized = normalize_ticker(symbol)
     if not normalized:
         return []
-    with get_connection() as conn:
+    with database.get_connection() as conn:
         rows = conn.execute(
             """
             SELECT user_id, alert_id, alert_json, defaults_json, cooldown_minutes,
@@ -389,7 +377,7 @@ def _safe_cooldown_minutes(raw_value: Any) -> int:
 
 
 def get_watch(user_id: str, alert_id: str) -> Optional[Dict[str, Any]]:
-    with get_connection() as conn:
+    with database.get_connection() as conn:
         row = conn.execute(
             """
             SELECT alert_json, defaults_json, cooldown_minutes
@@ -411,7 +399,7 @@ def get_watch(user_id: str, alert_id: str) -> Optional[Dict[str, Any]]:
 
 
 def get_last_triggered(user_id: str, alert_id: str) -> Optional[str]:
-    with get_connection() as conn:
+    with database.get_connection() as conn:
         row = conn.execute(
             "SELECT last_triggered_at FROM alert_trigger_state WHERE user_id = ? AND alert_id = ?",
             (user_id, alert_id),
@@ -423,7 +411,7 @@ def get_last_triggered(user_id: str, alert_id: str) -> Optional[str]:
 
 def record_trigger(user_id: str, alert_id: str, timestamp: Optional[str] = None) -> None:
     ts = _parseable_trigger_timestamp(timestamp) or _utc_now()
-    with get_connection() as conn:
+    with database.get_connection() as conn:
         conn.execute(
             """
             INSERT INTO alert_trigger_state (user_id, alert_id, last_triggered_at)
@@ -468,12 +456,11 @@ def try_claim_trigger(
     read of trigger state cannot both send — only the IMMEDIATE winner
     proceeds. Same/newer event timestamps still lose the claim.
     """
-    from datetime import timedelta
 
     claim_ts = timestamp or _utc_now()
     event_at = _as_utc_datetime(timestamp) if timestamp else None
 
-    with get_connection() as conn:
+    with database.get_connection() as conn:
         conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
             "SELECT last_triggered_at FROM alert_trigger_state WHERE user_id = ? AND alert_id = ?",
@@ -524,7 +511,7 @@ def restore_trigger_claim(
     claim_ts = _parseable_trigger_timestamp(claimed_at)
     if claim_ts is None:
         return
-    with get_connection() as conn:
+    with database.get_connection() as conn:
         conn.execute("BEGIN IMMEDIATE")
         if previous is None:
             conn.execute(
@@ -556,7 +543,7 @@ def record_delivery(
     timestamp: Optional[str] = None,
 ) -> None:
     ts = _parseable_iso_timestamp(timestamp) or _utc_now()
-    with get_connection() as conn:
+    with database.get_connection() as conn:
         conn.execute(
             """
             INSERT INTO alert_delivery_log
@@ -586,7 +573,7 @@ def record_delivery(
 
 
 def latest_trigger_timestamp_for_user(user_id: str) -> Optional[str]:
-    with get_connection() as conn:
+    with database.get_connection() as conn:
         row = conn.execute(
             """
             SELECT MAX(last_triggered_at) AS ts
@@ -601,7 +588,7 @@ def latest_trigger_timestamp_for_user(user_id: str) -> Optional[str]:
 
 
 def latest_deliveries_for_user(user_id: str) -> List[Dict[str, Any]]:
-    with get_connection() as conn:
+    with database.get_connection() as conn:
         rows = conn.execute(
             """
             SELECT alert_id, channel, success, test, error, timestamp

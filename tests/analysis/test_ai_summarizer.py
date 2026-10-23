@@ -1,5 +1,6 @@
 """Tests for AI summarizer module."""
 
+import os as os_module
 from unittest.mock import patch
 
 from src.analysis.ai_summarizer import AISummarizer
@@ -77,7 +78,6 @@ class TestAISummarizerDemoSummary:
     @patch("src.analysis.ai_summarizer.os.getenv")
     def test_generate_summary_returns_demo_when_no_api_key(self, mock_getenv):
         """generate_summary returns demo summary when OPENAI_API_KEY not set."""
-        import os as os_module
 
         def fake_getenv(key, default=None):
             if key == "OPENAI_API_KEY":
@@ -118,7 +118,6 @@ class TestAISummarizerOpenAIPath:
     @patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}, clear=False)
     def test_generate_summary_returns_openai_completion_text(self):
         """When OpenAI succeeds, return stripped completion content (not demo)."""
-        import sys
 
         summarizer = AISummarizer()
         assert summarizer.enabled is True
@@ -145,7 +144,7 @@ class TestAISummarizerOpenAIPath:
                 self.chat = type("Chat", (), {"completions": FakeCompletions()})()
 
         openai_mod = type("openai", (), {"OpenAI": FakeClient})()
-        with patch.dict(sys.modules, {"openai": openai_mod}):
+        with patch("src.analysis.ai_summarizer.OpenAI", openai_mod.OpenAI):
             result = summarizer.generate_summary(self._analysis(), exchange_comparison)
 
         assert result == "Markets were mixed today."
@@ -153,10 +152,9 @@ class TestAISummarizerOpenAIPath:
     @patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}, clear=False)
     def test_generate_summary_returns_none_when_openai_import_fails(self):
         """Missing openai package must return None (no silent demo fallback)."""
-        import sys
 
         summarizer = AISummarizer()
-        with patch.dict(sys.modules, {"openai": None}):
+        with patch("src.analysis.ai_summarizer.OpenAI", None):
             result = summarizer.generate_summary(self._analysis(), {})
 
         assert result is None
@@ -164,7 +162,6 @@ class TestAISummarizerOpenAIPath:
     @patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}, clear=False)
     def test_generate_summary_returns_none_on_api_exception(self):
         """API failures return None so callers can detect empty AI summary."""
-        import sys
 
         summarizer = AISummarizer()
 
@@ -180,7 +177,7 @@ class TestAISummarizerOpenAIPath:
                 raise RuntimeError("rate limited")
 
         openai_mod = type("openai", (), {"OpenAI": BoomClient})()
-        with patch.dict(sys.modules, {"openai": openai_mod}):
+        with patch("src.analysis.ai_summarizer.OpenAI", openai_mod.OpenAI):
             result = summarizer.generate_summary(self._analysis(), {})
 
         assert result is None
@@ -188,7 +185,6 @@ class TestAISummarizerOpenAIPath:
     @patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}, clear=False)
     def test_generate_summary_returns_none_when_message_content_is_none(self):
         """Null completion content (openai 3.17 parse_response) must fail closed."""
-        import sys
 
         summarizer = AISummarizer()
 
@@ -206,7 +202,7 @@ class TestAISummarizerOpenAIPath:
                 self.chat = type("Chat", (), {"completions": FakeCompletions()})()
 
         openai_mod = type("openai", (), {"OpenAI": FakeClient})()
-        with patch.dict(sys.modules, {"openai": openai_mod}):
+        with patch("src.analysis.ai_summarizer.OpenAI", openai_mod.OpenAI):
             result = summarizer.generate_summary(self._analysis(), {})
 
         assert result is None
@@ -214,7 +210,6 @@ class TestAISummarizerOpenAIPath:
     @patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}, clear=False)
     def test_generate_summary_returns_none_when_choices_empty(self):
         """A 200-style response with no choices must not crash the tracker path."""
-        import sys
 
         summarizer = AISummarizer()
         fake_response = type("Resp", (), {"choices": []})()
@@ -229,7 +224,7 @@ class TestAISummarizerOpenAIPath:
                 self.chat = type("Chat", (), {"completions": FakeCompletions()})()
 
         openai_mod = type("openai", (), {"OpenAI": FakeClient})()
-        with patch.dict(sys.modules, {"openai": openai_mod}):
+        with patch("src.analysis.ai_summarizer.OpenAI", openai_mod.OpenAI):
             result = summarizer.generate_summary(self._analysis(), {})
 
         assert result is None

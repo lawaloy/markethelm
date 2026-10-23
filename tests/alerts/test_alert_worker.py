@@ -6,7 +6,7 @@ import pytest
 
 from src.alerts import alert_worker
 from src.storage.alert_jobs import JOB_DELIVER, JOB_EVALUATE_SYMBOL, pending_job_count
-from src.storage.alert_watches import sync_watches_from_config
+from src.storage.alert_watches import InvalidAlertWatchConfig, sync_watches_from_config
 from src.storage.database import get_connection, init_database
 from src.storage.user_alerts import save_user_alerts_config
 from src.storage.users import create_user
@@ -315,7 +315,6 @@ def test_run_user_check_strips_padded_symbols(db_users) -> None:
 
 def test_save_user_alerts_rejects_sentinel_symbols(db_users) -> None:
     """Blank/sentinel symbols must fail closed at save, not become zombie watches."""
-    from src.storage.alert_watches import InvalidAlertWatchConfig
 
     user_a, _user_b = db_users
     with pytest.raises(InvalidAlertWatchConfig, match="valid symbol"):

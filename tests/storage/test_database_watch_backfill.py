@@ -4,6 +4,7 @@ import json
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
+import src.storage.alert_watches as alert_watches
 from src.storage.alert_watches import (
     list_enabled_symbols,
     list_watches_for_symbol,
@@ -89,7 +90,6 @@ def test_stale_backfill_cannot_restore_watches_over_newer_save(tmp_path, monkeyp
     assert list_enabled_symbols() == ["AAPL"]
 
     barrier = threading.Barrier(2)
-    import src.storage.alert_watches as alert_watches
 
     original_sync = alert_watches.sync_watches_from_config
 

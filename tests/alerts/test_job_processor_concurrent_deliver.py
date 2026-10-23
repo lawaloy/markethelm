@@ -11,7 +11,12 @@ import pytest
 
 from src.alerts.job_processor import _process_deliver
 from src.storage.alert_jobs import JOB_DELIVER, enqueue_job
-from src.storage.alert_watches import get_last_triggered, sync_watches_from_config
+from src.storage.alert_watches import (
+    get_last_triggered,
+    restore_trigger_claim,
+    sync_watches_from_config,
+    try_claim_trigger,
+)
 from src.storage.database import init_database
 from src.storage.users import create_user
 
@@ -135,7 +140,6 @@ def test_failed_older_restore_does_not_redeliver_newer_event(db_user) -> None:
     If restore deleted that row, stale recovery of the newer job (send
     succeeded, complete_job never ran) would POST the webhook again.
     """
-    from src.storage.alert_watches import restore_trigger_claim, try_claim_trigger
 
     sync_watches_from_config(db_user, _watch_config(cooldown_minutes=0))
     older_ts = "2026-06-09T12:00:00+00:00"

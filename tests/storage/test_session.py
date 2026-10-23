@@ -1,10 +1,20 @@
 """Unit tests for signed access tokens."""
 
+import base64
+import hashlib
+import hmac
+import json
 import time
 
 import pytest
 
-from src.storage.session import AuthError, create_access_token, decode_access_token
+from src.storage import session as session_mod
+from src.storage.session import (
+    AuthError,
+    create_access_token,
+    decode_access_token,
+    ensure_auth_secret,
+)
 
 
 @pytest.fixture
@@ -69,14 +79,6 @@ class TestSession:
             decode_access_token(token)
 
     def test_blank_or_missing_subject_rejected(self, auth_secret):
-        import base64
-        import hashlib
-        import hmac
-        import json
-        import time
-
-        from src.storage import session as session_mod
-
         def _sign(payload: dict) -> str:
             body = (
                 base64.urlsafe_b64encode(json.dumps(payload, separators=(",", ":")).encode())
@@ -98,8 +100,6 @@ class TestSession:
             decode_access_token(missing)
 
     def test_short_secret_rejected(self, monkeypatch):
-        from src.storage.session import ensure_auth_secret
-
         monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "too-short")
         with pytest.raises(AuthError, match="MARKETHELM_AUTH_SECRET"):
             create_access_token("user-123")
@@ -107,8 +107,6 @@ class TestSession:
             ensure_auth_secret()
 
     def test_missing_secret_raises(self, monkeypatch):
-        from src.storage.session import ensure_auth_secret
-
         monkeypatch.delenv("MARKETHELM_AUTH_SECRET", raising=False)
         with pytest.raises(AuthError, match="MARKETHELM_AUTH_SECRET"):
             create_access_token("user-123")

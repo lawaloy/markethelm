@@ -4,14 +4,13 @@ import json
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
 
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 

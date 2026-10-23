@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
+import dashboard.backend.api.market
 from dashboard.backend.main import app
 
 
@@ -18,7 +19,6 @@ def client():
 
 def test_market_movers_falls_back_when_name_is_nan(client) -> None:
     """float('nan') name previously failed StockMover str validation → 500."""
-    import dashboard.backend.api.market
 
     mock_loader = MagicMock()
     mock_loader.load_daily_data.return_value = pd.DataFrame(

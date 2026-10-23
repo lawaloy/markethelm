@@ -6,6 +6,10 @@ import json
 from unittest.mock import MagicMock
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+from src.storage.database import get_connection, init_database
 
 
 @pytest.fixture
@@ -13,17 +17,12 @@ def multi_user_env(tmp_path, monkeypatch):
     db_path = tmp_path / "hosted-nonlist.db"
     monkeypatch.setenv("MARKETHELM_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
     monkeypatch.setenv("MARKETHELM_AUTH_SECRET", "test-secret-min-16-chars")
-    from src.storage.database import init_database
 
     init_database()
 
 
 @pytest.fixture
 def client():
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
-
     return TestClient(app)
 
 
@@ -74,8 +73,6 @@ def test_hosted_get_config_soft_fails_non_list_alerts_without_touching_sibling(
     )
     assert saved.status_code == 200
 
-    from src.storage.database import get_connection
-
     with get_connection() as conn:
         conn.execute(
             """
@@ -115,8 +112,6 @@ def test_hosted_status_soft_fails_non_list_alerts_without_touching_sibling(
         json=_price_payload("sibling-msft", "MSFT"),
     )
     assert saved.status_code == 200
-
-    from src.storage.database import get_connection
 
     with get_connection() as conn:
         conn.execute(

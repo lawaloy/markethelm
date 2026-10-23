@@ -7,6 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.workflows.tracker import StockTrackerWorkflow
+
 
 @pytest.fixture
 def temp_data_dir():
@@ -59,7 +61,6 @@ class TestStockTrackerWorkflow:
         temp_data_dir,
     ):
         """Workflow completes successfully with mocked fetch and storage."""
-        from src.workflows.tracker import StockTrackerWorkflow
 
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_all_indices.return_value = {
@@ -99,7 +100,6 @@ class TestStockTrackerWorkflow:
         self, mock_alert, mock_storage_cls, mock_fetcher_cls, mock_indices
     ):
         """Workflow returns error when fetch fails."""
-        from src.workflows.tracker import StockTrackerWorkflow
 
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_all_indices.side_effect = Exception("API rate limit exceeded")
@@ -129,7 +129,6 @@ class TestStockTrackerWorkflow:
         temp_data_dir,
     ):
         """Analyzer/projector exceptions yield empty dicts so the run can continue."""
-        from src.workflows.tracker import StockTrackerWorkflow
 
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_all_indices.return_value = {"S&P 500": sample_stock_data}
@@ -174,7 +173,6 @@ class TestStockTrackerWorkflow:
         mock_watches,
     ):
         """Padded/cased index symbols match normalized watches; skip duplicate fetch."""
-        from src.workflows.tracker import StockTrackerWorkflow
 
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_all_indices.return_value = {
@@ -234,7 +232,6 @@ class TestStockTrackerWorkflow:
         sample_stock_data,
     ):
         """Watch symbols absent from index fetch are appended; duplicates are not re-fetched."""
-        from src.workflows.tracker import StockTrackerWorkflow
 
         mock_fetcher = MagicMock()
         mock_fetcher.fetch_all_indices.return_value = {"S&P 500": sample_stock_data[:1]}
@@ -260,7 +257,6 @@ class TestStockTrackerWorkflow:
 
     def test_run_alerts_swallows_evaluation_errors(self):
         """Alert engine failures must not abort the workflow."""
-        from src.workflows.tracker import StockTrackerWorkflow
 
         workflow = StockTrackerWorkflow.__new__(StockTrackerWorkflow)
         workflow.alert_engine = MagicMock()
@@ -270,7 +266,6 @@ class TestStockTrackerWorkflow:
 
     def test_save_summary_returns_projection_csv_and_handles_failure(self, temp_data_dir):
         """Summary save returns projection path; exceptions become failure dicts."""
-        from src.workflows.tracker import StockTrackerWorkflow
 
         workflow = StockTrackerWorkflow.__new__(StockTrackerWorkflow)
         workflow.storage = MagicMock()
@@ -309,7 +304,6 @@ class TestStockTrackerWorkflow:
         temp_data_dir,
     ):
         """Day-trading top_n must rank by volume across indices."""
-        from src.workflows.tracker import StockTrackerWorkflow
 
         stocks = [
             {

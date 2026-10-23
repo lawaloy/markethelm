@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
+import dashboard.backend.api.stocks
 from dashboard.backend.main import app
 
 
@@ -15,8 +16,6 @@ def client():
 
 
 def test_stock_detail_404_when_daily_symbol_column_missing(client) -> None:
-    import dashboard.backend.api.stocks
-
     mock_loader = MagicMock()
     mock_loader.get_latest_date.return_value = "2026-01-15"
     mock_loader.load_daily_data.return_value = pd.DataFrame(
@@ -36,8 +35,6 @@ def test_stock_detail_404_when_daily_symbol_column_missing(client) -> None:
 
 
 def test_stock_detail_404_when_daily_frame_empty(client) -> None:
-    import dashboard.backend.api.stocks
-
     mock_loader = MagicMock()
     mock_loader.get_latest_date.return_value = "2026-01-15"
     mock_loader.load_daily_data.return_value = pd.DataFrame()

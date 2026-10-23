@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Sequence, Union
 
 from src.storage.market_bars import upsert_market_bars
+from src.storage.projections_store import upsert_daily_summary, upsert_projections
 
 
 def seed_daily_bars(
@@ -36,7 +37,6 @@ def seed_projections(
     rows: Sequence[Dict[str, Any]],
 ) -> int:
     """Upsert projection rows for one run date into market_bars under ``data_dir``."""
-    from src.storage.projections_store import upsert_projections
 
     return upsert_projections(list(rows), run_date, data_dir=data_dir, source="test")
 
@@ -47,6 +47,5 @@ def seed_summary(
     summary_data: Dict[str, Any],
 ) -> str:
     """Persist one daily summary into market_bars under ``data_dir``."""
-    from src.storage.projections_store import upsert_daily_summary
 
     return upsert_daily_summary(dict(summary_data), summary_date, data_dir=data_dir, source="test")

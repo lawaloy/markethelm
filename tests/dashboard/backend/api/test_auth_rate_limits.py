@@ -6,6 +6,10 @@ refactor cannot silently drop login, register, or recovery throttles.
 """
 
 import pytest
+from fastapi.testclient import TestClient
+
+from dashboard.backend.main import app
+from src.storage.database import init_database
 
 
 @pytest.fixture
@@ -21,12 +25,8 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("MARKETHELM_RATE_LIMIT_LOGIN", "1")
     monkeypatch.setenv("MARKETHELM_RATE_LIMIT_REGISTER", "1")
     monkeypatch.setenv("MARKETHELM_RATE_LIMIT_AUTH_EMAIL", "1")
-    from src.storage.database import init_database
 
     init_database()
-    from fastapi.testclient import TestClient
-
-    from dashboard.backend.main import app
 
     return TestClient(app)
 
