@@ -43,7 +43,12 @@ def saved_quote_details() -> Dict[str, Dict[str, object]]:
 
 def prices_from_saved_daily_data() -> Dict[str, float]:
     """Prices from the newest recorded quote for each recently saved symbol."""
-    return {symbol: float(row["price"]) for symbol, row in saved_quote_details().items()}
+    prices: Dict[str, float] = {}
+    for symbol, row in saved_quote_details().items():
+        price = row.get("price")
+        if isinstance(price, (str, int, float)):
+            prices[symbol] = float(price)
+    return prices
 
 
 def resolve_symbol_prices(
