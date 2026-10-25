@@ -1,7 +1,7 @@
-fastapi>=0.152.0
+fastapi>=0.159.1
 uvicorn[standard]>=0.54.0
 httpx>=0.28.1
-pandas>=3.0.6
+pandas>=3.1.0
 exchange-calendars>=4.13.2
 pydantic>=2.14.1
 python-multipart>=0.0.32
