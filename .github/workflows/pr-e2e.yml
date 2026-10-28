@@ -20,7 +20,8 @@ concurrency:
 jobs:
   smoke:
     name: Curl + Playwright
-    runs-on: ubuntu-latest
+    # Match the Ubuntu releases supported by the locked Playwright version.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
