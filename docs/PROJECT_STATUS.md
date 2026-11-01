@@ -1,6 +1,6 @@
 # Project status and roadmap
 
-**Last updated:** 2026-10-09
+**Last updated:** 2026-11-01 (mission, vision, and product goals)
 
 This is the authoritative inventory of what MarketHelm currently ships, what is
 covered by automated tests, and what remains unfinished. Deployment instructions
@@ -11,9 +11,36 @@ and should not be read as implementation claims.
 <details open>
 <summary><b>Product direction</b></summary>
 
-MarketHelm is a stock-market monitoring product with a Python CLI and a React web
-dashboard. It screens and fetches market data, produces heuristic short-term
-projections, stores historical runs, and can notify users when alert rules match.
+MarketHelm is building a market intelligence product that takes users from market
+observation to informed decisions and, eventually, controlled execution.
+
+**Mission:** Turn market data into explainable insight that helps people evaluate
+opportunities and make informed decisions.
+
+**Vision:** A hosted platform where users sign up, choose what to follow, receive
+explained recommendations and private alerts, and eventually execute trades
+within defined risk limits and with an audit trail. Users manage preferences in
+the UI; the platform operates data providers and notification delivery.
+
+**Product goals:**
+
+1. **Monitor:** Build reliable market context from saved data and, in a later
+   phase, live quotes.
+2. **Interpret:** Explain signals and uncertainty. Develop richer inference with
+   ML, fundamentals, and news context as future extensions to today's technical
+   heuristics and optional AI briefs.
+3. **Suggest and validate:** Present reasoned outlooks, recommendations, and
+   alerts; measure projections against real outcomes before changing scoring.
+4. **Act:** Eventually support broker execution with risk limits and audit
+   history, after separate execution and operational design.
+5. **Serve many users:** Make accounts, private preferences, and reliable delivery
+   available through a hosted product, with local operation supported for
+   development and self-hosting.
+
+The current implementation provides screening, heuristic five-session
+projections, optional AI briefs, historical outcome tracking, accounts, and
+per-user alerts through a Python core and React dashboard. The capability matrix
+below and the ordered work sections distinguish shipped behavior from the goals.
 
 The repository supports two operating modes:
 
