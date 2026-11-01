@@ -10,7 +10,7 @@
   <p>
     <a href="#purpose-and-direction">Our direction</a> ·
     <a href="#quick-start">Quick start</a> ·
-    <a href="https://github.com/lawaloy/markethelm/blob/main/docs/README.md">Documentation</a>
+    <a href="https://github.com/lawaloy/markethelm/blob/main/docs/README.md">Indexes</a>
   </p>
 </div>
 
