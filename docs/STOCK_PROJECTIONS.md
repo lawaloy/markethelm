@@ -375,6 +375,14 @@ assess --data-dir data --days 365` to see the evidence shortfall. The gate requi
 two confidence cohorts of 30 or more samples. `capture` writes a report and input
 hash manifest only after all gates pass; see [USAGE.md](USAGE.md#projection-backtesting).
 
+A separate frozen temporal study now compares identical outcomes against an
+unchanged-price forecast and directional/confidence benchmarks. It fits cohort
+confidence and a residual-based range candidate only on outcomes available before
+the held-out forecasts were generated. Brier score, cohort error, interval width,
+and paired daily errors supplement the headline metrics. These diagnostics do not
+change application scoring; see [the protocol](USAGE.md#projection-backtesting)
+and [the initial real-data study](../baselines/research/projection-2026-10-30/README.md).
+
 </details>
 
 <a id="future-enhancements"></a>
@@ -465,17 +473,19 @@ Based on actual test with 197 stocks:
 <details>
 <summary><b>Testing</b></summary>
 
-The projection system has been tested with real market data and produces consistent, reasonable projections based on technical analysis principles.
+The automated tests verify deterministic formulas, calendar alignment, storage,
+and outcome evaluation. Real-data research measures forecast quality separately;
+the current evidence does not establish a reliable predictive advantage.
 
 <a id="test-results"></a>
 <details>
 <summary><b>Test Results</b></summary>
 
-- ✅ Successfully generates projections for 90%+ of stocks
-- ✅ Confidence scores properly weighted
-- ✅ Recommendations align with momentum/trend
-- ✅ Price targets within reasonable ranges
-- ✅ Risk levels correctly assessed
+- Tests cover projection generation and invalid-input handling.
+- Recommendations and risk labels follow the configured heuristic rules.
+- Confidence scores are heuristic scores, not calibrated success probabilities.
+- The real-data study reports midpoint errors, direction, confidence calibration,
+  and low/high range coverage against explicit benchmarks.
 
 </details>
 

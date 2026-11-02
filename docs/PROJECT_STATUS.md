@@ -158,7 +158,9 @@ unit tests and container-only integration tests cannot fully reproduce.
    provenance; legacy filename-dated closes are excluded from qualification. Do
    not change confidence scoring until adequately sized cohorts demonstrate
    stable bias; the committed synthetic baseline validates evaluator behavior
-   only.
+   only. Frozen temporal benchmark/calibration reports now accompany each archive
+   and qualified capture; the initial real-data study remains research-only and
+   does not justify promoting the current heuristic or calibration candidate.
 3. **External staging sign-off:** in parallel, complete the ordered
    [external staging execution TODO](DEPLOYMENT.md#external-staging-execution-todo)
    against the chosen managed PostgreSQL, ingress, monitoring, and
