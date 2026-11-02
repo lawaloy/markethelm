@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
+import os
+import sqlite3
+import subprocess
+import sys
 from pathlib import Path
 
-from tests.helpers.market_bars import seed_projections
+from tests.helpers.market_bars import seed_daily_bars, seed_projections
 
 MODULE_PATH = Path(__file__).resolve().parents[2] / "scripts" / "projection_baseline.py"
 SPEC = importlib.util.spec_from_file_location("projection_baseline", MODULE_PATH)
@@ -154,3 +159,93 @@ def test_capture_hashes_the_same_private_snapshot_it_evaluates(tmp_path: Path, m
         manifest["inputs"][0]["sha256"]
         != projection_baseline.hashlib.sha256(input_path.read_bytes()).hexdigest()
     )
+
+
+def test_validate_cli_emits_reproducible_research_report_without_touching_source(tmp_path):
+    seed_projections(
+        tmp_path,
+        "2026-07-02",
+        [
+            {
+                "symbol": "AAPL",
+                "current_price": 100,
+                "target_mid": 102,
+                "confidence": 80,
+                "generated_at": "2026-07-02T21:00:00+00:00",
+            }
+        ],
+    )
+    seed_daily_bars(
+        tmp_path,
+        "2026-07-13",
+        [
+            {
+                "symbol": "AAPL",
+                "close": 104,
+                "outcome_session": "2026-07-10",
+                "outcome_close": 103,
+                "outcome_final": True,
+            }
+        ],
+    )
+    source = tmp_path / "market_bars.sqlite"
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    env = {**os.environ, "MARKETHELM_DATABASE_URL": "", "FINNHUB_API_KEY": "", "OPENAI_API_KEY": ""}
+    command = [sys.executable, str(MODULE_PATH), "validate", "--data-dir", str(tmp_path)]
+    result = subprocess.run(command, env=env, capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    report = json.loads(result.stdout)
+    assert report["promotionDecision"] == "research_only"
+    assert report["status"] == "insufficient_data"
+    assert report["eligibleSampleCount"] == 1
+    assert report["evidenceQualification"]["qualified"] is False
+    assert len(report["inputs"][0]["sha256"]) == 64
+    assert hashlib.sha256(source.read_bytes()).hexdigest() == digest
+    # A repeat evaluates exactly the same immutable inputs and split.
+    repeat = subprocess.run(command, env=env, capture_output=True, text=True, timeout=30)
+    assert repeat.returncode == 0, repeat.stderr
+    assert json.loads(repeat.stdout) == report
+
+
+def test_capture_includes_hashed_validation_from_the_same_private_inputs(tmp_path, monkeypatch):
+    source = tmp_path / "source"
+    source.mkdir()
+    seed_projections(source, "2026-07-07", [{"symbol": "AAPL", "target_mid": 100}])
+    monkeypatch.setattr(projection_baseline, "observed_report", lambda *_: _qualified_report())
+    output = tmp_path / "qualified"
+    assert projection_baseline.capture(source, output, 365) == 0
+    manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+    assert (
+        manifest["reportSha256"]
+        == hashlib.sha256((output / "report.json").read_bytes()).hexdigest()
+    )
+    validation = (output / "validation.json").read_bytes()
+    assert manifest["validationSha256"] == hashlib.sha256(validation).hexdigest()
+    assert json.loads(validation)["inputs"] == manifest["inputs"]
+    assert json.loads(validation)["promotionDecision"] == "research_only"
+
+
+def test_snapshot_includes_committed_wal_rows_and_closes_all_handles(tmp_path):
+    source = tmp_path / "source"
+    snapshot = tmp_path / "snapshot"
+    source.mkdir()
+    snapshot.mkdir()
+    conn = sqlite3.connect(source / "market_bars.sqlite")
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA wal_autocheckpoint=0")
+        conn.execute("CREATE TABLE evidence (value INTEGER)")
+        conn.execute("INSERT INTO evidence VALUES (42)")
+        conn.commit()
+        assert (source / "market_bars.sqlite-wal").stat().st_size > 0
+        projection_baseline._snapshot_inputs(source, snapshot)
+        copied = sqlite3.connect(snapshot / "market_bars.sqlite")
+        try:
+            assert copied.execute("SELECT value FROM evidence").fetchone()[0] == 42
+            assert copied.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        finally:
+            copied.close()
+        # Windows refuses this unlink if the backup connection leaked.
+        (snapshot / "market_bars.sqlite").unlink()
+    finally:
+        conn.close()

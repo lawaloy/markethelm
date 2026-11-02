@@ -1,0 +1,308 @@
+{
+  "allScoredBenchmarks": {
+    "alwaysDownDirectionalAccuracyPct": 37.54876462938881,
+    "alwaysUpDirectionalAccuracyPct": 62.32119635890767,
+    "equalRunDateMeanErrorImprovementPct": 0.040245880998067474,
+    "incumbent": {
+      "bandCoveragePct": 3.9336801040312093,
+      "bandSampleCount": 3076,
+      "brierScore": 0.27962532509752924,
+      "calibrationGapPct": 17.4463589076723,
+      "cohortCalibrationErrorPct": 17.446358907672302,
+      "confidenceSampleCount": 3076,
+      "directionalAccuracyPct": 54.42132639791938,
+      "meanAbsErrorPct": 3.971173669479557,
+      "meanBandWidthPct": 0.4836633228496302,
+      "meanConfidence": 71.86768530559168,
+      "medianAbsErrorPct": 3.0249852367238375,
+      "sampleCount": 3076
+    },
+    "neutralConfidenceBrierScore": 0.25,
+    "runDateLosses": 7,
+    "runDateTies": 0,
+    "runDateWins": 11,
+    "unchangedPrice": {
+      "bandCoveragePct": null,
+      "bandSampleCount": 0,
+      "brierScore": null,
+      "calibrationGapPct": null,
+      "cohortCalibrationErrorPct": null,
+      "confidenceSampleCount": 0,
+      "directionalAccuracyPct": 0.13003901170351106,
+      "meanAbsErrorPct": 4.011610237611165,
+      "meanBandWidthPct": null,
+      "meanConfidence": null,
+      "medianAbsErrorPct": 3.1064171122994635,
+      "sampleCount": 3076
+    }
+  },
+  "eligibleSampleCount": 3076,
+  "evidenceQualification": {
+    "checks": {
+      "distinctRunDates": {
+        "actual": 18,
+        "minimum": 20
+      },
+      "distinctSymbols": {
+        "actual": 174,
+        "minimum": 25
+      },
+      "eligibleConfidenceCohorts": {
+        "actual": 4,
+        "cohorts": ["60-69", "70-79", "80-89", "90-100"],
+        "minimum": 2,
+        "samplesPerCohort": 30
+      },
+      "evaluationCoveragePct": {
+        "actual": 98.118,
+        "minimum": 90.0
+      },
+      "sampleCount": {
+        "actual": 3076,
+        "minimum": 200
+      }
+    },
+    "failures": ["distinctRunDates is 18; requires at least 20"],
+    "qualified": false,
+    "schemaVersion": 1
+  },
+  "excludedSampleCount": 0,
+  "failures": [],
+  "fittedOnEarlierData": {
+    "confidenceByCohort": {
+      "60-69": 0.4870967741935484,
+      "70-79": 0.5562015503875969,
+      "80-89": 0.6349206349206349,
+      "90-100": 0.625
+    },
+    "confidenceMethod": "training-cohort Laplace-smoothed directional frequency",
+    "fallbackConfidence": 0.5384052670080468,
+    "intervalMethod": "symmetric absolute residual / origin price, finite-sample quantile",
+    "nominalCoveragePct": 80.0,
+    "residualQuantile": 0.05607948804311213,
+    "residualQuantileRank": 1093,
+    "trainingCohortCounts": {
+      "60-69": 618,
+      "70-79": 514,
+      "80-89": 187,
+      "90-100": 46
+    }
+  },
+  "heldOut": {
+    "alwaysDownDirectionalAccuracyPct": 41.00467289719626,
+    "alwaysUpDirectionalAccuracyPct": 58.99532710280374,
+    "calibrationCandidate": {
+      "bandCoveragePct": 75.70093457943925,
+      "bandSampleCount": 856,
+      "brierScore": 0.25673484627947035,
+      "calibrationGapPct": 5.097255344098606,
+      "cohortCalibrationErrorPct": 6.93023695398705,
+      "confidenceSampleCount": 856,
+      "directionalAccuracyPct": 50.116822429906534,
+      "meanAbsErrorPct": 4.037673109561595,
+      "meanBandWidthPct": 11.215897608622425,
+      "meanConfidence": 55.21407777400514,
+      "medianAbsErrorPct": 2.943291988014839,
+      "sampleCount": 856
+    },
+    "equalRunDateMeanErrorImprovementPct": -0.08716858685142448,
+    "fallbackConfidenceSampleCount": 0,
+    "incumbent": {
+      "bandCoveragePct": 5.490654205607477,
+      "bandSampleCount": 856,
+      "brierScore": 0.308107476635514,
+      "calibrationGapPct": 22.873831775700936,
+      "cohortCalibrationErrorPct": 22.873831775700936,
+      "confidenceSampleCount": 856,
+      "directionalAccuracyPct": 50.116822429906534,
+      "meanAbsErrorPct": 4.037673109561595,
+      "meanBandWidthPct": 0.5834344367888151,
+      "meanConfidence": 72.99065420560747,
+      "medianAbsErrorPct": 2.943291988014839,
+      "sampleCount": 856
+    },
+    "neutralConfidenceBrierScore": 0.25,
+    "runDateLosses": 2,
+    "runDateTies": 0,
+    "runDateWins": 3,
+    "trainingRateConfidence": {
+      "bandCoveragePct": 75.70093457943925,
+      "bandSampleCount": 856,
+      "brierScore": 0.25138523260169754,
+      "calibrationGapPct": 3.7237042708981463,
+      "cohortCalibrationErrorPct": 4.658967382015327,
+      "confidenceSampleCount": 856,
+      "directionalAccuracyPct": 50.116822429906534,
+      "meanAbsErrorPct": 4.037673109561595,
+      "meanBandWidthPct": 11.215897608622425,
+      "meanConfidence": 53.84052670080468,
+      "medianAbsErrorPct": 2.943291988014839,
+      "sampleCount": 856
+    },
+    "unchangedPrice": {
+      "bandCoveragePct": null,
+      "bandSampleCount": 0,
+      "brierScore": null,
+      "calibrationGapPct": null,
+      "cohortCalibrationErrorPct": null,
+      "confidenceSampleCount": 0,
+      "directionalAccuracyPct": 0,
+      "meanAbsErrorPct": 3.95038561476213,
+      "meanBandWidthPct": null,
+      "meanConfidence": null,
+      "medianAbsErrorPct": 2.907497698426346,
+      "sampleCount": 856
+    }
+  },
+  "inputs": [
+    {
+      "bytes": 3141632,
+      "path": "market_bars.sqlite",
+      "sha256": "2040039617a2383a5b79255eb7dfb9945cf1d77b57e4d0fba85bf6068d2edd4c"
+    }
+  ],
+  "latestOutcomeAvailableAt": "2026-10-31T01:54:38.936034+00:00",
+  "limitations": [
+    "Run dates and symbols have correlated, overlapping five-session outcomes.",
+    "This rolling retrospective holdout has already been observed; fresh forward validation is required before promotion or selecting another candidate.",
+    "The nominal interval coverage is a diagnostic target, not a guarantee under drift.",
+    "Unchanged-price direction is flat; always-up/down are directional references only."
+  ],
+  "promotionDecision": "research_only",
+  "protocol": "frozen-temporal-v1",
+  "schemaVersion": 1,
+  "settings": {
+    "holdout_run_dates": 5,
+    "interval_coverage": 0.8,
+    "min_cohort_samples": 30,
+    "min_training_run_dates": 5,
+    "min_training_samples": 200
+  },
+  "sourceSampleCount": 3076,
+  "sourceSummary": {
+    "bandCoveragePct": 3.934,
+    "byConfidenceBand": {
+      "60-69": {
+        "bandCoveragePct": 2.212,
+        "calibrationGapPct": 13.183,
+        "count": 1266,
+        "directionalAccuracyPct": 51.817,
+        "meanAbsErrorPct": 3.329,
+        "meanConfidence": 65.0,
+        "medianAbsErrorPct": 2.744
+      },
+      "70-79": {
+        "bandCoveragePct": 3.954,
+        "calibrationGapPct": 17.061,
+        "count": 1138,
+        "directionalAccuracyPct": 55.36,
+        "meanAbsErrorPct": 3.992,
+        "meanConfidence": 72.421,
+        "medianAbsErrorPct": 2.992
+      },
+      "80-89": {
+        "bandCoveragePct": 6.823,
+        "calibrationGapPct": 26.218,
+        "count": 513,
+        "directionalAccuracyPct": 55.75,
+        "meanAbsErrorPct": 4.916,
+        "meanConfidence": 81.969,
+        "medianAbsErrorPct": 3.816
+      },
+      "90-100": {
+        "bandCoveragePct": 8.176,
+        "calibrationGapPct": 25.849,
+        "count": 159,
+        "directionalAccuracyPct": 64.151,
+        "meanAbsErrorPct": 5.885,
+        "meanConfidence": 90.0,
+        "medianAbsErrorPct": 4.783
+      }
+    },
+    "byRecommendation": {
+      "BUY": {
+        "bandCoveragePct": 5.319,
+        "calibrationGapPct": 10.319,
+        "count": 564,
+        "directionalAccuracyPct": 68.44,
+        "meanAbsErrorPct": 3.613,
+        "meanConfidence": 78.759,
+        "medianAbsErrorPct": 2.71
+      },
+      "HOLD": {
+        "bandCoveragePct": 1.947,
+        "calibrationGapPct": 15.089,
+        "count": 1849,
+        "directionalAccuracyPct": 51.487,
+        "meanAbsErrorPct": 3.621,
+        "meanConfidence": 66.577,
+        "medianAbsErrorPct": 2.858
+      },
+      "SELL": {
+        "bandCoveragePct": 6.604,
+        "calibrationGapPct": 30.118,
+        "count": 424,
+        "directionalAccuracyPct": 48.821,
+        "meanAbsErrorPct": 4.885,
+        "meanConfidence": 78.939,
+        "medianAbsErrorPct": 4.049
+      },
+      "STRONG BUY": {
+        "bandCoveragePct": 11.719,
+        "calibrationGapPct": 30.0,
+        "count": 128,
+        "directionalAccuracyPct": 53.906,
+        "meanAbsErrorPct": 5.939,
+        "meanConfidence": 83.906,
+        "medianAbsErrorPct": 4.8
+      },
+      "STRONG SELL": {
+        "bandCoveragePct": 10.811,
+        "calibrationGapPct": 30.045,
+        "count": 111,
+        "directionalAccuracyPct": 54.054,
+        "meanAbsErrorPct": 5.86,
+        "meanConfidence": 84.099,
+        "medianAbsErrorPct": 5.345
+      }
+    },
+    "calendar": "XNYS",
+    "calibrationGapPct": 17.446,
+    "directionalAccuracyPct": 54.421,
+    "evaluationCoveragePct": 98.118,
+    "horizonSessions": 5,
+    "invalidCount": 0,
+    "legacyOutcomeCount": 0,
+    "legacyProjectionCount": 0,
+    "meanAbsErrorPct": 3.971,
+    "meanConfidence": 71.868,
+    "medianAbsErrorPct": 3.025,
+    "missingActualCount": 59,
+    "pendingCount": 1044,
+    "projectionCount": 4179,
+    "sampleCount": 3076,
+    "schemaVersion": 1,
+    "timestampedProjectionCount": 3076,
+    "validProjectionCount": 4179,
+    "verifiedOutcomeCount": 3076
+  },
+  "split": {
+    "earliestHoldoutGeneratedAt": "2026-10-17T00:52:14.712259+00:00",
+    "holdoutRunDates": ["2026-10-16", "2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22"],
+    "holdoutSampleCount": 856,
+    "latestTrainingOutcomeAvailableAt": "2026-10-17T00:52:14.692059+00:00",
+    "purgedUnavailableOutcomeCount": 855,
+    "trainingRunDates": [
+      "2026-09-29",
+      "2026-09-30",
+      "2026-10-01",
+      "2026-10-02",
+      "2026-10-05",
+      "2026-10-06",
+      "2026-10-07",
+      "2026-10-08"
+    ],
+    "trainingSampleCount": 1365
+  },
+  "status": "evaluated"
+}

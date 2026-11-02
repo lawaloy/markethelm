@@ -107,6 +107,54 @@ error still fails the workflow. When the evidence gate passes, the workflow also
 uploads an immutable `projection-observed-baseline-*` artifact containing the
 qualified report and input hashes.
 
+Compare the incumbent against simple benchmarks and fit research calibration
+candidates on earlier, available outcomes:
+
+```bash
+python3 scripts/projection_baseline.py validate --data-dir data --days 365 \
+  > data/projection-validation.json
+```
+
+This command evaluates a consistent SQLite backup and records its SHA-256. Unset
+`MARKETHELM_DATABASE_URL` first: validation and capture use the explicit sidecar
+archive and refuse a hosted database override. The report can be generated while
+the evidence gate is unmet; `evidenceQualification` retains the shortfall and
+`promotionDecision` always remains `research_only`. A zero exit means the report
+was generated, not that the model or evidence qualified. Missing training history
+is reported as `insufficient_data`; the protocol never shrinks the holdout.
+
+Protocol `frozen-temporal-v1` reserves the newest five scored run dates together.
+It fits once using at least 200 samples across five earlier run dates, and only
+outcomes persisted strictly before the earliest held-out generation timestamp.
+Overlapping forecast horizons with unavailable outcomes are purged. Matched
+outcome revisions retain their own recorded availability time. All comparisons
+use the same eligible samples, with paired run-date wins/losses and an equally
+weighted daily error difference to expose concentration across correlated stocks.
+
+The point-price benchmark holds the origin price unchanged; always-up/down are
+separate direction references. Confidence benchmarks include neutral 50% and the
+training-only directional success rate. The candidate maps original confidence
+cohorts to Laplace-smoothed training success rates, using the global training
+rate for cohorts smaller than 30 samples or unseen in training. Brier score and
+cohort calibration error accompany the confidence gap. An 80% nominal range
+candidate uses a finite-sample quantile of training absolute residuals divided by
+origin price, centered on the existing midpoint. Reports show both coverage and
+width; increasing width alone does not establish better forecasts.
+
+Scheduled collection now archives this report every eligible run. A qualified
+observed capture also includes `validation.json`, with its hash in the manifest,
+using the same private inputs as the original outcome report. The committed
+[October 30 research study](../baselines/research/projection-2026-10-30/README.md)
+preserves an initial real-data comparison without labeling its 18 scored dates
+as a qualified baseline.
+
+These are rolling retrospective research comparisons. The archive and its
+headline outcomes have already been inspected; repeated evaluation does not
+create an untouched prospective test. Forecasts overlap across dates and stocks,
+so sample counts are not independent trials. Keep application scoring unchanged
+until a frozen candidate is assessed on fresh forward outcomes, against the
+benchmarks, with adequate coverage, cohort breadth, and stability across time.
+
 This evidence cadence is not the intended operating cadence for future automated
 trading. Broker execution remains unimplemented and will require a separate
 intraday or event-driven loop with position state, idempotent orders, risk limits,
@@ -120,7 +168,7 @@ python3 scripts/projection_baseline.py capture --data-dir data --days 365 \
 ```
 
 Capture refuses to create an output directory when any qualification fails.
-It evaluates a private copy of the `market_bars.sqlite` sidecar and hashes that same copy, preventing
+It evaluates a consistent SQLite backup of the `market_bars.sqlite` sidecar and hashes that same backup, preventing
 a concurrent refresh from producing a report/manifest mismatch.
 
 </details>

@@ -134,6 +134,13 @@ jobs:
             echo "Evidence is still accumulating; qualification is not expected yet."
           fi
 
+      - name: Compare benchmarks and frozen temporal calibration candidates
+        if: steps.collection-day.outputs.run == 'true'
+        run: |
+          python scripts/projection_baseline.py validate \
+            --data-dir data \
+            --days 365 > data/projection-validation.json
+
       - name: Capture qualified observed baseline
         if: >-
           steps.collection-day.outputs.run == 'true' &&
@@ -152,6 +159,7 @@ jobs:
           path: |
             data/market_bars.sqlite
             data/projection-assessment.json
+            data/projection-validation.json
           if-no-files-found: error
           retention-days: 90
 

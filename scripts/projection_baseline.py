@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Verify or intentionally update the committed projection evaluator baseline."""
+"""Assess, benchmark and preserve projection evidence and evaluator baselines."""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
-import shutil
+import sqlite3
 import sys
 import tempfile
+from contextlib import closing
 from datetime import datetime, timezone
 from difflib import unified_diff
 from pathlib import Path
@@ -20,7 +21,9 @@ except ImportError:  # run as ``python scripts/<name>.py``: repo root not on sys
     import _repo_path
 
 from src.analysis.backtesting import backtest_data_dir
+from src.analysis.projection_validation import validation_data_dir
 from src.core.logger import configure_logging
+from src.storage.database import database_enabled
 
 ROOT = _repo_path.ROOT
 
@@ -156,33 +159,66 @@ def _input_manifest(data_dir: Path) -> list[dict]:
 
 
 def _snapshot_inputs(data_dir: Path, snapshot_dir: Path) -> None:
-    """Copy durable market_bars sidecar (bars + projections + summaries)."""
+    """Snapshot committed sidecar pages, including WAL, using SQLite backup."""
     bars = data_dir / "market_bars.sqlite"
     if bars.is_file():
-        shutil.copy2(bars, snapshot_dir / bars.name)
+        with closing(sqlite3.connect(bars.resolve().as_uri() + "?mode=ro", uri=True)) as source:
+            with closing(sqlite3.connect(snapshot_dir / bars.name)) as destination:
+                source.backup(destination)
+
+
+def validation_report(data_dir: Path, days: int, report: Optional[dict] = None) -> dict:
+    """Benchmark the same immutable snapshot used by the evidence gate."""
+    if database_enabled():
+        raise ValueError("Unset MARKETHELM_DATABASE_URL to evaluate the --data-dir SQLite archive")
+    report = report if report is not None else observed_report(data_dir, days)
+    validation = validation_data_dir(data_dir, days)
+    validation["evidenceQualification"] = qualify_report(report)
+    validation["inputs"] = _input_manifest(data_dir)
+    return validation
+
+
+def validate(data_dir: Path, days: int) -> int:
+    """Emit diagnostics even when evidence is still accumulating; never promote."""
+    if not data_dir.is_dir():
+        raise ValueError(f"Data directory not found: {data_dir}")
+    with tempfile.TemporaryDirectory(prefix="markethelm-validation-") as temporary:
+        snapshot_dir = Path(temporary)
+        _snapshot_inputs(data_dir, snapshot_dir)
+        validation = validation_report(snapshot_dir, days)
+    print(json.dumps(validation, indent=2, allow_nan=False, sort_keys=True))
+    return 0
 
 
 def capture(data_dir: Path, output_dir: Path, days: int, **thresholds: object) -> int:
     """Write an immutable observed report only after qualification succeeds."""
+    if database_enabled():
+        raise ValueError("Unset MARKETHELM_DATABASE_URL to capture the --data-dir SQLite archive")
     with tempfile.TemporaryDirectory(prefix="markethelm-baseline-") as temporary:
         snapshot_dir = Path(temporary)
         _snapshot_inputs(data_dir, snapshot_dir)
         report = observed_report(snapshot_dir, days)
         assessment = qualify_report(report, **thresholds)
         inputs = _input_manifest(snapshot_dir)
+        validation = (
+            validation_report(snapshot_dir, days, report) if assessment["qualified"] else None
+        )
     if not assessment["qualified"]:
         print(json.dumps(assessment, indent=2, allow_nan=False, sort_keys=True))
         print("Refusing to capture an unqualified observed baseline.", file=sys.stderr)
         return 1
     output_dir.mkdir(parents=True, exist_ok=False)
     report_text = json.dumps(report, indent=2, allow_nan=False, sort_keys=True) + "\n"
-    (output_dir / "report.json").write_text(report_text, encoding="utf-8")
+    (output_dir / "report.json").write_bytes(report_text.encode("utf-8"))
+    validation_text = json.dumps(validation, indent=2, allow_nan=False, sort_keys=True) + "\n"
+    (output_dir / "validation.json").write_bytes(validation_text.encode("utf-8"))
     manifest = {
         "schemaVersion": 1,
         "capturedAt": datetime.now(timezone.utc).isoformat(),
         "sourceDirectory": data_dir.name,
         "days": days,
         "reportSha256": hashlib.sha256(report_text.encode()).hexdigest(),
+        "validationSha256": hashlib.sha256(validation_text.encode()).hexdigest(),
         "assessment": assessment,
         "inputs": inputs,
     }
@@ -217,7 +253,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",
-        choices=("check", "update", "assess", "capture", "print-qualified"),
+        choices=("check", "update", "assess", "capture", "validate", "print-qualified"),
     )
     parser.add_argument("--data-dir", type=Path, default=ROOT / "data")
     parser.add_argument("--days", type=int, default=365)
@@ -243,6 +279,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return update()
     if args.command == "print-qualified":
         return print_qualified(args.assessment)
+    if args.command == "validate":
+        return validate(args.data_dir, args.days)
     thresholds = {
         "min_samples": args.min_samples,
         "min_run_dates": args.min_run_dates,
