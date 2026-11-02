@@ -14,10 +14,17 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
+from fastapi.testclient import TestClient
 from requests.adapters import HTTPAdapter
 
+import src.storage.market_refresh as refresh_store
+import src.workflows.market_refresh as refresh_worker
+from dashboard.backend.main import app
 from src.analysis.backtesting import backtest_data_dir
+from src.analysis.market_calendar import get_market_calendar
 from src.cli.commands import main as cli_main
+from src.core.market_refresh import MarketRefreshSettings
+from src.storage.database import init_database
 from src.storage.market_bars import list_market_bar_dates
 from src.storage.projections_store import list_projection_dates
 from src.workflows.tracker import StockTrackerWorkflow
@@ -75,7 +82,7 @@ class _FinnhubHandler(BaseHTTPRequestHandler):
                 "l": price - 2,
                 "o": price - 1,
                 "pc": price - 1,
-                "t": int(time.time()),
+                "t": getattr(self.server, "quote_timestamp", int(time.time())),
                 "v": 1_000_000,
             }
         ).encode("utf-8")
@@ -112,7 +119,14 @@ def _finnhub_stub():
         thread.join(timeout=2)
 
 
-def _workflow(monkeypatch, tmp_path: Path, server: _FinnhubStub, symbols: list[str]):
+def _workflow(
+    monkeypatch,
+    tmp_path: Path,
+    server: _FinnhubStub,
+    symbols: list[str],
+    *,
+    load_alerts: bool = True,
+):
     monkeypatch.setenv("FINNHUB_API_KEY", "integration-test")
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     monkeypatch.setenv("STOCK_FETCH_MAX_WORKERS", "1")
@@ -129,7 +143,7 @@ def _workflow(monkeypatch, tmp_path: Path, server: _FinnhubStub, symbols: list[s
         "src.services.api_client.time",
         SimpleNamespace(time=time.time, sleep=lambda _seconds: None),
     )
-    workflow = StockTrackerWorkflow(include_profile=False)
+    workflow = StockTrackerWorkflow(include_profile=False, load_alerts=load_alerts)
     client = workflow.fetcher.api_client
     client.base_url = f"http://127.0.0.1:{server.server_port}/api/v1"
     client.session.mount("http://", HTTPAdapter(max_retries=0))
@@ -188,3 +202,72 @@ def test_total_provider_failure_reaches_nonzero_cli_exit(monkeypatch, tmp_path):
     assert server.request_counts["MALFORMED"] >= 3
     assert server.request_counts["DROPPED"] >= 3
     assert server.request_counts["TIMEOUT"] >= 3
+
+
+def test_scheduled_collection_populates_hosted_db_and_survives_restart(monkeypatch, tmp_path):
+    settings = MarketRefreshSettings(min_symbols=2)
+    now = refresh_store.utc_now()
+    session = refresh_store.expected_session(now, settings)
+    with _finnhub_stub() as server:
+        server.quote_timestamp = int(get_market_calendar().session_close(session).timestamp())
+        with patch(
+            "src.workflows.tracker.AlertEngine.from_config",
+            side_effect=AssertionError("collector must not load local delivery configuration"),
+        ):
+            workflow = _workflow(
+                monkeypatch, tmp_path, server, ["GOOD", "THROTTLED", "MALFORMED"], load_alerts=False
+            )
+        monkeypatch.setenv(
+            "MARKETHELM_DATABASE_URL", f"sqlite:///{(tmp_path/'hosted.db').as_posix()}"
+        )
+        monkeypatch.setenv("MARKETHELM_MARKET_REFRESH_ENABLED", "true")
+        init_database()
+        monkeypatch.setattr(refresh_worker, "StockTrackerWorkflow", lambda **kwargs: workflow)
+        # Exercise the actual workflow/provider/storage boundary in this process;
+        # the separate watchdog/timeout tests exercise the subprocess boundary.
+        monkeypatch.setattr(
+            refresh_worker,
+            "_run_collector",
+            lambda config: None if refresh_worker._collect(config) == 0 else "collector_failed",
+        )
+        assert refresh_store.market_data_health(now, settings)["ok"] is False
+        with patch.object(workflow, "_run_alerts") as local_delivery:
+            result = refresh_worker.run_once(settings)
+        assert result["status"] == "success"
+        assert result["quote_count"] == 2
+        local_delivery.assert_not_called()
+        assert server.request_counts["THROTTLED"] == 2
+        calls = server.request_counts.copy()
+        init_database()
+        assert refresh_worker.run_once(settings)["status"] == "already_collected"
+        assert server.request_counts == calls
+        assert refresh_store.market_data_health(refresh_store.utc_now(), settings)["ok"] is True
+        monkeypatch.setenv("MARKET_REFRESH_MIN_SYMBOLS", "2")
+        response = TestClient(app).get("/health/market-data")
+        assert response.status_code == 200
+        assert response.json()["quote_count"] == 2
+        assert response.json()["data_session"] == session
+        assert "owner" not in response.json()
+
+
+def test_scheduled_total_provider_failure_is_persisted_and_not_retried_immediately(
+    monkeypatch, tmp_path
+):
+    settings = MarketRefreshSettings(min_symbols=1)
+    with _finnhub_stub() as server:
+        workflow = _workflow(monkeypatch, tmp_path, server, ["MALFORMED"])
+        monkeypatch.setenv(
+            "MARKETHELM_DATABASE_URL", f"sqlite:///{(tmp_path/'failed.db').as_posix()}"
+        )
+        init_database()
+        monkeypatch.setattr(refresh_worker, "StockTrackerWorkflow", lambda **kwargs: workflow)
+        monkeypatch.setattr(
+            refresh_worker,
+            "_run_collector",
+            lambda config: None if refresh_worker._collect(config) == 0 else "collector_failed",
+        )
+        assert refresh_worker.run_once(settings)["status"] == "error"
+        assert refresh_store.load_state()["error_code"] == "collector_failed"
+        calls = server.request_counts.copy()
+        assert refresh_worker.run_once(settings)["status"] == "retry_pending"
+        assert server.request_counts == calls

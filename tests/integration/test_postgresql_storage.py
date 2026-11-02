@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import os
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
 import psycopg
 import pytest
 
+from src.core.market_refresh import MarketRefreshSettings
 from src.storage.account_tokens import RESET_PASSWORD, consume_token, issue_token
 from src.storage.alert_jobs import (
     JOB_EVALUATE_SYMBOL,
@@ -21,6 +24,7 @@ from src.storage.alert_watches import get_watch
 from src.storage.database import LATEST_SCHEMA_VERSION, get_connection, init_database
 from src.storage.health import latest_worker_heartbeat, record_worker_heartbeat
 from src.storage.market_bars import list_market_bar_dates, upsert_market_bars
+from src.storage.market_refresh import claim_run, finish_run, load_state
 from src.storage.projections_store import (
     list_projection_dates,
     load_daily_summary,
@@ -153,3 +157,20 @@ def test_postgresql_migrations_and_storage_workflow(postgresql_database):
     assert changed["session_version"] == 2
     delete_user_account(managed["id"], "new-password-123")
     assert get_user_by_id(managed["id"]) is None
+
+
+def test_postgresql_scheduled_collection_claims_are_atomic_and_fenced(postgresql_database):
+    init_database()
+    now = datetime(2026, 7, 6, 21, tzinfo=timezone.utc)
+    settings = MarketRefreshSettings(timeout_seconds=10)
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        claims = list(pool.map(lambda _: claim_run("2026-07-06", now, settings), range(6)))
+    owners = [owner for owner, _ in claims if owner]
+    assert len(owners) == 1
+    assert load_state()["attempts"] == 1
+    later = now + timedelta(seconds=131)
+    replacement, _ = claim_run("2026-07-06", later, settings)
+    assert replacement and replacement != owners[0]
+    assert finish_run(owners[0], later, settings, error_code="collector_failed") is False
+    assert finish_run(replacement, later, settings, quote_count=10) is True
+    assert claim_run("2026-07-06", later, settings) == (None, "already_collected")

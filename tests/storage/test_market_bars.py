@@ -23,8 +23,9 @@ def app_db(tmp_path, monkeypatch):
 
 
 def test_migration_seven_creates_projections_and_summaries(app_db):
-    assert LATEST_SCHEMA_VERSION == 7
     with get_connection() as conn:
+        latest = conn.execute("SELECT MAX(version) AS version FROM schema_migrations").fetchone()
+        assert latest["version"] == LATEST_SCHEMA_VERSION
         row = conn.execute("SELECT name FROM schema_migrations WHERE version = 7").fetchone()
         assert row["name"] == "projections_and_summaries"
         proj_cols = {

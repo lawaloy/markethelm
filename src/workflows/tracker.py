@@ -61,21 +61,28 @@ class StockTrackerWorkflow:
     It returns structured data that can be consumed by any interface (CLI, Web, API).
     """
 
-    def __init__(self, include_profile: bool = True):
+    def __init__(self, include_profile: bool = True, *, load_alerts: bool = True):
         """Initialize workflow components."""
         self.fetcher = StockDataFetcher(include_profile=include_profile)
         self.storage = DataStorage()
         self.analyzer = StockAnalyzer()
         self.ai_summarizer = AISummarizer()
         self.projector = StockProjector()
-        self.alert_engine = AlertEngine.from_config()
+        self.alert_engine = AlertEngine.from_config() if load_alerts else None
         logger.debug("Workflow components initialized")
 
-    def run(self, use_screener: bool = True, top_n_stocks: Optional[int] = None) -> Dict[str, Any]:
+    def run(
+        self,
+        use_screener: bool = True,
+        top_n_stocks: Optional[int] = None,
+        *,
+        evaluate_alerts: bool = True,
+    ) -> Dict[str, Any]:
         """
         Execute the complete stock tracking workflow.
 
         Args:
+            evaluate_alerts: Evaluate local rules; hosted collectors leave delivery to the worker.
             use_screener: Whether to use stock screener for filtering
             top_n_stocks: If specified, limit to top N stocks by volume (for day trading)
 
@@ -132,7 +139,8 @@ class StockTrackerWorkflow:
             )
 
             # Step 7: Evaluate alerts (if configured)
-            self._run_alerts(all_data)
+            if evaluate_alerts:
+                self._run_alerts(all_data)
 
             logger.info("Workflow completed successfully")
 

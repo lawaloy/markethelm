@@ -240,6 +240,29 @@ _MIGRATIONS = (
     ON daily_summaries(summary_date DESC)""",
         ),
     ),
+    Migration(
+        version=8,
+        name="scheduled_market_collection",
+        statements=(
+            """CREATE TABLE market_refresh_state (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    owner TEXT,
+    status TEXT NOT NULL,
+    target_session TEXT,
+    started_at TEXT,
+    finished_at TEXT,
+    lease_until TEXT,
+    retry_after TEXT,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    last_success_session TEXT,
+    last_success_at TEXT,
+    success_started_at TEXT,
+    quote_count INTEGER NOT NULL DEFAULT 0,
+    error_code TEXT
+)""",
+            "CREATE INDEX idx_market_bars_written ON market_bars(written_at)",
+        ),
+    ),
 )
 
 LATEST_SCHEMA_VERSION = _MIGRATIONS[-1].version

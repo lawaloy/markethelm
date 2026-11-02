@@ -22,6 +22,71 @@ by both application processes.
 the database is unavailable or migrations are incomplete and includes the latest
 worker heartbeat when one exists.
 
+<a id="scheduled-market-data"></a>
+<details>
+<summary><b>Scheduled hosted market-data collection</b></summary>
+
+The hosted collector updates the application's shared database independently of
+browser visits. It uses the existing screening/analysis pipeline and XNYS calendar,
+runs once per completed session after a provider grace period, and catches up on
+the most recent completed session after a restart. It is a daily collector, not a
+live quote feed. The GitHub projection-evidence workflow remains a separate archive.
+
+Set `MARKETHELM_MARKET_REFRESH_ENABLED=true` in the environment shared by the API
+and collector, configure `FINNHUB_API_KEY`, and ensure `MARKETHELM_DATABASE_URL`
+points to the same database. Start the optional Compose service:
+
+```bash
+docker compose -f docker-compose.staging.yml --profile market-data up -d --build
+```
+
+On another host, run `markethelm collect-market-data --loop` as a supervised
+service, or invoke `markethelm collect-market-data` from a periodic cron job.
+Concurrent scheduled collectors share a database lease. Their retry budget and
+last successful session survive restarts. Ordinary `markethelm` and dashboard
+manual refreshes remain separate operator actions; schedule those separately to
+avoid additional provider calls. Hosted notification delivery stays in the alert
+worker; the collector does not evaluate local alert rules.
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `MARKET_REFRESH_CLOSE_DELAY_SECONDS` | `900` | Delay after the actual exchange close, including early closes |
+| `MARKET_REFRESH_TIMEOUT_SECONDS` | `1800` | Maximum runtime per collection attempt; parent and child enforce it |
+| `MARKET_REFRESH_RETRY_SECONDS` | `900` | Wait between failed attempts |
+| `MARKET_REFRESH_MAX_ATTEMPTS` | `3` | Attempts per target session; a new session gets a new budget |
+| `MARKET_REFRESH_MIN_SYMBOLS` | `10` | Minimum fresh symbols with persisted bars, projections, and summary |
+| `MARKET_REFRESH_TOP_N` | `50` | Maximum selected stocks passed to the existing tracker |
+| `MARKET_REFRESH_POLL_SECONDS` | `60` | Poll interval in loop mode |
+
+Adjust coverage, runtime, and the selected universe for the provider plan. The
+existing API client still controls provider rate limits. A quote counts as fresh
+only if its aware provider timestamp belongs to the target session and is within
+15 minutes of that session's close or later; future timestamps beyond five minutes
+are rejected. A successful exit without newly persisted outputs fails collection.
+
+Probe `/health/market-data` externally, or run
+`markethelm collect-market-data --check`. Missing/stale data returns HTTP 503 or a
+nonzero CLI status. Both remain unhealthy until the first verified collection.
+The freshness deadline allows the post-close delay, one polling interval, one
+bounded collection runtime, and a 120-second recovery margin; the response also reports the latest
+due session, data session, retry state, and sanitized failure code. This probe is
+separate from API liveness/readiness, so collection failures do not restart the API.
+It reports `disabled` when the feature is off. Monitor repeated failed attempts
+as well as missed freshness deadlines.
+
+After correcting a provider/configuration failure, an operator can run
+`markethelm collect-market-data --retry-failed` to reset that session's retry
+budget. It does not override an active lease or re-run a successful session.
+Partial/failing runs can leave partial outputs in the shared database; a failure
+never advances the scheduler's last-success marker. The collector does not publish
+an atomic full-universe snapshot or backfill every missed session.
+
+Keep this service opt-in in CI and local environments: starting it with a real
+provider key performs provider requests. The default container readiness workflow
+does not enable the `market-data` profile.
+
+</details>
+
 <a id="staging-acceptance-harness"></a>
 <details>
 <summary><b>Staging acceptance harness</b></summary>
