@@ -3,7 +3,7 @@
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock
 
 import pytest
@@ -48,6 +48,29 @@ def test_provider_exception_is_redacted_and_the_lease_is_released(db, monkeypatc
     assert state["lease_until"] is None
     assert state["error_code"] == "collector_error"
     assert "DO-NOT-LOG" not in caplog.text
+
+
+@pytest.mark.parametrize("stage", ["collection", "verification"])
+def test_interrupted_run_remains_failed_and_can_be_retried(db, monkeypatch, stage):
+    def interrupt(*args):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(
+        worker, "_run_collector", interrupt if stage == "collection" else lambda _: None
+    )
+    monkeypatch.setattr(store, "verified_quote_count", interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        worker.run_once(SETTINGS)
+    state = store.load_state()
+    assert state["status"] == "error"
+    assert state["error_code"] == "interrupted"
+    assert state["last_success_session"] is None
+    assert state["lease_until"] is None
+    owner, status = store.claim_run(
+        state["target_session"], NOW + timedelta(seconds=SETTINGS.retry_seconds), SETTINGS
+    )
+    assert status == "claimed"
+    assert owner
 
 
 def test_timeout_terminates_and_reaps_child(monkeypatch):

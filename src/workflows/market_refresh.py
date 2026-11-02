@@ -79,13 +79,14 @@ def run_once(
     error = "interrupted"
     count = 0
     try:
-        error = _run_collector(settings)
-        if error is None:
+        collection_error = _run_collector(settings)
+        if collection_error is None:
             count = refresh_store.verified_quote_count(
                 session, now.isoformat(), refresh_store.utc_now()
             )
-            if count < settings.min_symbols:
-                error = "insufficient_fresh_data"
+            error = "insufficient_fresh_data" if count < settings.min_symbols else None
+        else:
+            error = collection_error
     except Exception as exc:
         error = "collector_error"
         logger.error("Market collection failed: %s", type(exc).__name__)
