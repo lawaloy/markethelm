@@ -57,6 +57,29 @@ services:
     volumes: [market-data:/var/lib/markethelm/data]
     depends_on:
       postgres: { condition: service_healthy }
+  market-collector:
+    profiles: ['market-data']
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        NODE_BASE_IMAGE: ${MARKETHELM_NODE_BASE_IMAGE:-node:22.23.2-alpine}
+        PYTHON_BASE_IMAGE: ${MARKETHELM_PYTHON_BASE_IMAGE:-python:3.12-slim}
+    restart: unless-stopped
+    command: ['markethelm', 'collect-market-data', '--loop']
+    env_file: ${MARKETHELM_ENV_FILE:-.env.staging}
+    environment:
+      MARKETHELM_DATABASE_URL: postgresql://markethelm:${POSTGRES_PASSWORD}@postgres:5432/markethelm
+      DATA_DIR: /var/lib/markethelm/data
+    volumes: [market-data:/var/lib/markethelm/data]
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD', 'markethelm', 'collect-market-data', '--check']
+      interval: 60s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
 volumes:
   postgres-data:
   market-data:

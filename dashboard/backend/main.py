@@ -28,12 +28,14 @@ import dashboard.backend.services.data_loader as data_loader
 import src.alerts.alert_worker as alert_worker
 import src.storage.database as storage_database
 import src.storage.health as storage_health
+import src.storage.market_refresh as market_refresh_store
 from dashboard.backend.api import alerts, auth, history, market, projections, refresh, stocks
 from dashboard.backend.api.market import get_market_summary
 from dashboard.backend.auth import require_user_id
 from dashboard.backend.observability import ObservabilityMiddleware, prometheus_metrics
 from dashboard.backend.rate_limit import RateLimitMiddleware
 from src.core.logger import get_logger
+from src.core.market_refresh import MarketRefreshSettings, market_refresh_enabled
 
 logger = get_logger(__name__)
 
@@ -200,6 +202,20 @@ async def health_worker():
     if not health["ok"]:
         return JSONResponse(payload, status_code=503)
     return payload
+
+
+@app.get("/health/market-data")
+async def health_market_data():
+    if not market_refresh_enabled():
+        return {"status": "disabled"}
+    try:
+        result = market_refresh_store.market_data_health(
+            market_refresh_store.utc_now(), MarketRefreshSettings.from_env()
+        )
+    except Exception:
+        result = {"ok": False, "reason": "collector_health_unavailable"}
+    payload = {"status": "healthy" if result["ok"] else "unhealthy", **result}
+    return JSONResponse(payload, status_code=200 if result["ok"] else 503)
 
 
 @app.get("/metrics", include_in_schema=False)

@@ -129,3 +129,9 @@ authentication, quotas, retry behavior, response normalization, and tests.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how screening and rate limiting work
 - [DEPLOYMENT.md](DEPLOYMENT.md) — production environment and secrets
 - [LOGGING.md](LOGGING.md) — console verbosity, log files, and browser logging
+
+## Hosted daily collection
+
+See [scheduled market data](DEPLOYMENT.md#scheduled-market-data) for the opt-in
+`markethelm collect-market-data` service, retry/coverage settings, and freshness
+probe. It shares the hosted database with the API and alert worker.

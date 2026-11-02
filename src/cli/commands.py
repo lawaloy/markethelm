@@ -12,6 +12,7 @@ from typing import Any
 
 import src.cli.alerts_commands as alerts_commands
 import src.cli.backtest_commands as backtest_commands
+import src.workflows.market_refresh as market_refresh
 
 from ..core.logger import configure_logging, get_logger
 from ..workflows.tracker import StockTrackerWorkflow
@@ -226,6 +227,9 @@ def display_results(result: dict):
 
 def main():
     """CLI entry point for MarketHelm (see also console script `markethelm`)."""
+
+    if len(sys.argv) > 1 and sys.argv[1] == "collect-market-data":
+        return market_refresh.main(sys.argv[2:])
 
     if len(sys.argv) > 1 and sys.argv[1] == "alerts":
         alerts_commands.main(sys.argv[2:])
