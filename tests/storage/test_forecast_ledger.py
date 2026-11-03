@@ -73,7 +73,7 @@ def test_new_model_versions_share_inputs_and_cannot_be_attached_late(ledger):
     assert len(before["forecast_predictions"]) == 5
     assert len({row["case_id"] for row in before["forecast_predictions"]}) == 1
     with pytest.raises(ForecastConflict, match="attach"):
-        record(ledger)
+        record(ledger, models=builtin_models())
     assert ledger_snapshot(data_dir=ledger) == before
 
 

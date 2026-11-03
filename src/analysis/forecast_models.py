@@ -6,11 +6,13 @@ import hashlib
 import inspect
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from functools import lru_cache
 from typing import Callable, Mapping
 
 from src.analysis.forecast_scoring import SCORING_VERSION, score_prediction
 from src.analysis.projector import StockProjector
+from src.analysis.return_candidate import ReturnCandidate, bundled_candidate
 
 PROTOCOL_VERSION = "prospective-v1"
 UNCHANGED_VERSION = "unchanged-price-v1"
@@ -123,4 +125,26 @@ def builtin_models() -> tuple[ForecastModel, ...]:
         ),
         ForecastModel("always-up-v1", "direction", {"direction": 1}, _up),
         ForecastModel("always-down-v1", "direction", {"direction": -1}, _down),
+    )
+
+
+def live_models(now: datetime) -> tuple[ForecastModel, ...]:
+    """Enroll the frozen candidate in new cases without changing the active projector."""
+    candidate = bundled_candidate()
+    references = builtin_models()
+    if now <= candidate.frozen_at:
+        return references
+    definition = candidate.definition
+    return (
+        *references,
+        ForecastModel(
+            definition["model_version"],
+            "point",
+            {
+                "artifact": definition,
+                "artifact_sha256": fingerprint(canonical_json(definition)),
+                "implementation_sha256": _source_fingerprint(ReturnCandidate),
+            },
+            candidate.predict,
+        ),
     )

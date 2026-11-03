@@ -1,8 +1,8 @@
 """Synthetic live-forecast fixtures, never production performance evidence."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from src.analysis.market_calendar import trading_session_after_timestamp
+from src.analysis.market_calendar import get_market_calendar, trading_session_after_timestamp
 from src.storage.forecast_ledger import record_forecast_run
 
 NOW = datetime(2026, 7, 6, 21, tzinfo=timezone.utc)
@@ -61,3 +61,31 @@ def record(path, p=None, rows=None, now=NOW, **kwargs):
         now=now,
         **kwargs,
     )
+
+
+def training_samples():
+    calendar = get_market_calendar()
+    sessions = calendar.sessions_in_range("2026-01-05", "2026-03-02")
+    rows = []
+    for index, session in enumerate(sessions[:25]):
+        for number in range(30):
+            movement = 0.02 if number % 2 else -0.02
+            rows.append(
+                {
+                    "runDate": session.date().isoformat(),
+                    "targetDate": sessions[index + 5].date().isoformat(),
+                    "symbol": f"S{number:02d}",
+                    "current": 100.0,
+                    "predicted": 100 * (1 + movement),
+                    "actual": 100 * (1.01 + 0.1 * movement),
+                    "confidenceBand": "60-69",
+                    "confidence": 60,
+                    "generatedAt": (
+                        calendar.session_close(session).to_pydatetime() + timedelta(hours=1)
+                    ).isoformat(),
+                    "outcomeAvailableAt": calendar.session_close(sessions[index + 6]).isoformat(),
+                    "actualProvenance": "verified_previous_close",
+                    "generationProvenance": "timestamped",
+                }
+            )
+    return rows

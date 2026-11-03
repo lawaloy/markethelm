@@ -7,6 +7,7 @@ include pyproject.toml
 
 recursive-include config *.json
 recursive-include src *.py
+recursive-include src/analysis/models *.json
 recursive-include tests *.py
 recursive-include docs *.md
 recursive-include dashboard *.py

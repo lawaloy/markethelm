@@ -139,14 +139,8 @@ def _comparison(samples: list[dict]) -> dict:
     }
 
 
-def validate_samples(samples: list[dict], settings: ValidationSettings | None = None) -> dict:
-    """Fit once on available earlier outcomes, then score complete later run dates.
-
-    The newest five scored run dates are a fixed holdout. Every training outcome
-    must have been persisted strictly before the earliest holdout generation time.
-    Calibration is diagnostic: no application scoring or deployment is changed.
-    """
-    settings = settings or ValidationSettings()
+def eligible_validation_samples(samples: list[dict]) -> list[dict]:
+    """Keep finite, timestamped forecasts with verified exact-session outcomes."""
     eligible = []
     for sample in samples:
         try:
@@ -168,6 +162,18 @@ def validate_samples(samples: list[dict], settings: ValidationSettings | None = 
         except (KeyError, TypeError, ValueError, OverflowError):
             continue
     eligible.sort(key=lambda s: (s["runDate"], s["symbol"]))
+    return eligible
+
+
+def validate_samples(samples: list[dict], settings: ValidationSettings | None = None) -> dict:
+    """Fit on earlier available outcomes and reserve complete later run dates.
+
+    The newest five scored run dates are a fixed holdout. Every training outcome
+    must have been persisted strictly before the earliest holdout generation time.
+    Calibration is diagnostic: no application scoring or deployment is changed.
+    """
+    settings = settings or ValidationSettings()
+    eligible = eligible_validation_samples(samples)
     dates = sorted({s["runDate"] for s in eligible})
     report = {
         "schemaVersion": 1,
@@ -255,8 +261,8 @@ def validate_samples(samples: list[dict], settings: ValidationSettings | None = 
     return report
 
 
-def validation_data_dir(data_dir: Path, days: int = 365) -> dict:
-    """Use the shared evaluator, enriching samples with persisted availability."""
+def validation_samples_data_dir(data_dir: Path, days: int = 365) -> tuple[list[dict], dict]:
+    """Load retrospective samples with persisted outcome availability."""
     if database_enabled():
         raise ValueError("Unset MARKETHELM_DATABASE_URL to evaluate the --data-dir SQLite archive")
     report = backtest_data_dir(data_dir, days=days, max_samples=None, verified_outcomes_only=True)
@@ -288,6 +294,12 @@ def validation_data_dir(data_dir: Path, days: int = 365) -> dict:
                 "outcomeAvailableAt": min(available).isoformat() if available else None,
             }
         )
+    return samples, report["summary"]
+
+
+def validation_data_dir(data_dir: Path, days: int = 365) -> dict:
+    """Use the shared evaluator, enriching samples with persisted availability."""
+    samples, summary = validation_samples_data_dir(data_dir, days)
     validation = validate_samples(samples)
-    validation["sourceSummary"] = report["summary"]
+    validation["sourceSummary"] = summary
     return validation

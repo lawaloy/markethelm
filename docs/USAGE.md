@@ -75,6 +75,8 @@ The report evaluates the first verified case per stock/origin session, shows
 missing outcomes and paired model comparisons, and keeps promotion manual.
 It never reclassifies old mutable snapshots as forward evidence.
 
+See the [first shadow model](SHADOW_MODEL.md) for the frozen ridge return candidate, historical diagnostic, offline reproduction and prospective review requirements. Live runs enroll it automatically in new forecast cases; dashboard targets continue to use the incumbent.
+
 The repository also preserves a synthetic scenario baseline that detects changes
 to evaluator semantics:
 

@@ -1,6 +1,6 @@
 # Project status and roadmap
 
-**Last updated:** 2026-11-01 (mission, vision, and product goals)
+**Last updated:** 2026-11-03 (first frozen shadow model)
 
 This is the authoritative inventory of what MarketHelm currently ships, what is
 covered by automated tests, and what remains unfinished. Deployment instructions
@@ -81,7 +81,7 @@ real email delivery, DNS, TLS, backups, and restore procedures require staging.
 | ----------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | CLI and daily tracker         | **Shipped and tested**                       | Index screening, quote/profile fetch, analysis, projections, durable `market_bars` storage with optional Markdown reports, and service-boundary resilience coverage                               | Live Finnhub smoke testing and full-market run reliability                                                               |
 | Web dashboard                 | **Shipped and tested**                       | Overview, movers, stock detail, summaries, historical trends, accuracy, refresh controls, exports, dark mode                                                                                      | Route-level code splitting, saved views/watchlists, keyboard shortcuts, performance/accessibility passes                 |
-| Projection model              | **Partial**                                  | Five-session XNYS heuristic targets, confidence, risk, recommendations, and a deterministic JSON backtest CLI                                                                                     | Qualified out-of-sample baselines, evidence-led calibration changes, fundamentals/news/ML                                |
+| Projection model              | **Partial**                                  | Five-session XNYS heuristic, immutable forward evaluation, a frozen ridge return shadow candidate, and deterministic retrospective diagnostics                                                    | Qualified out-of-sample baselines, evidence-led calibration changes, fundamentals/news/ML                                |
 | Historical accuracy           | **Partial**                                  | CLI, API, and dashboard share exact-session metrics; a committed scenario matrix and golden report protect evaluator semantics                                                                    | Preserve qualified real-data baselines; add risk-adjusted and longer-horizon views                                       |
 | Alerts                        | **Shipped and tested**                       | Price, RSI, and shallow compound rules, screening match, cooldowns, log/webhook/email delivery, retries, scheduled worker, delivery history, Helmtower UI                                         | Nested compounds and additional indicators; SMS/push; real-provider staging tests                                        |
 | Accounts and tenant isolation | **Shipped and tested**                       | Registration, login/logout, bearer sessions, email verification, password reset/change, account deletion, per-user alert data                                                                     | Account export and stronger administrative/support tooling                                                               |
@@ -165,6 +165,7 @@ unit tests and container-only integration tests cannot fully reproduce.
    exact-session outcomes are scored once and reported by model/origin session.
    Keep this prospective cohort separate from imported historical projections;
    see [the frozen forward protocol](FORWARD_FORECASTS.md).
+   The first [ridge return shadow candidate](SHADOW_MODEL.md) is implemented with a frozen offline artifact. Its retrospective error improvement is below the 5% review floor; fresh paired prospective evidence is pending and the active heuristic is unchanged.
 3. **External staging sign-off:** in parallel, complete the ordered
    [external staging execution TODO](DEPLOYMENT.md#external-staging-execution-todo)
    against the chosen managed PostgreSQL, ingress, monitoring, and

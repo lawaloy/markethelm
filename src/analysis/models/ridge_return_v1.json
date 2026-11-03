@@ -1,0 +1,61 @@
+{
+  "calendar": "XNYS",
+  "coefficients": [
+    0.0040154534590833854,
+    0.0012852793079429626
+  ],
+  "deployment": "shadow_only",
+  "frozen_at": "2026-11-03T10:55:08.016026+00:00",
+  "horizon_sessions": 5,
+  "incumbent_version": "heuristic-v1",
+  "model_version": "ridge-return-v1",
+  "recipe": {
+    "feature_return_scale": 0.05,
+    "features": [
+      "constant",
+      "clipped incumbent return / 0.05"
+    ],
+    "outputs": "point only; no confidence or interval estimate",
+    "prediction_return_cap": 0.05,
+    "ridge_penalty": 1.0,
+    "target": "exact five-session close / rounded projection origin price - 1",
+    "training_return_cap": 0.2,
+    "version": "ridge-return-recipe-v1",
+    "weighting": "equal origin-session weights, then equal stocks within session"
+  },
+  "schema_version": 1,
+  "training": {
+    "available_before": "2026-10-17T00:52:14.712259+00:00",
+    "latest_outcome_available_at": "2026-10-17T00:52:14.692059+00:00",
+    "origin_sessions": [
+      "2026-09-29",
+      "2026-09-30",
+      "2026-10-01",
+      "2026-10-02",
+      "2026-10-05",
+      "2026-10-06",
+      "2026-10-07",
+      "2026-10-08"
+    ],
+    "sample_count": 1365,
+    "samples_sha256": "8f663f95617ea052b8f821d0944a8b061141e487d0c76785e0e92e86fe6f664a",
+    "source": {
+      "inputs": [
+        {
+          "bytes": 3141632,
+          "path": "market_bars.sqlite",
+          "sha256": "2040039617a2383a5b79255eb7dfb9945cf1d77b57e4d0fba85bf6068d2edd4c"
+        }
+      ]
+    },
+    "trainer_sha256": "951cb87cefa043f23cd70993e40a76d89018ac278d5026a41d54e9b5ad76b02a",
+    "validation_protocol": "frozen-temporal-v1",
+    "validation_settings": {
+      "holdout_run_dates": 5,
+      "interval_coverage": 0.8,
+      "min_cohort_samples": 30,
+      "min_training_run_dates": 5,
+      "min_training_samples": 200
+    }
+  }
+}

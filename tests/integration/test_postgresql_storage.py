@@ -12,6 +12,9 @@ import psycopg
 import pytest
 
 import src.storage.database as database
+from src.analysis.forward_evaluation import forward_report
+from src.analysis.market_calendar import get_market_calendar
+from src.analysis.return_candidate import MODEL_VERSION, bundled_candidate
 from src.core.market_refresh import MarketRefreshSettings
 from src.storage.account_tokens import RESET_PASSWORD, consume_token, issue_token
 from src.storage.alert_jobs import (
@@ -221,3 +224,36 @@ def test_postgresql_schema_eight_upgrades_without_reclassifying_history(
         assert conn.execute("SELECT close FROM market_bars").fetchone()["close"] == 100
         assert conn.execute("SELECT target_mid FROM projections").fetchone()["target_mid"] == 102
     assert ledger_snapshot(data_dir=None)["forecast_cases"] == []
+
+
+def test_postgresql_scores_shadow_candidate_on_paired_cases(postgresql_database):
+    candidate = bundled_candidate()
+    calendar = get_market_calendar()
+    anchor = calendar.date_to_session(candidate.frozen_at.date().isoformat(), direction="next")
+    origin = calendar.next_session(anchor)
+    now = calendar.session_close(origin).to_pydatetime() + timedelta(hours=1)
+    p = projection(now)
+    quote = stock(quote_timestamp=calendar.session_close(origin).isoformat())
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(
+            pool.map(
+                lambda _: record_forecast_run({"AAPL": p}, [quote], data_dir=None, now=now),
+                range(6),
+            )
+        )
+    assert sum(result["new_cases"] for result in results) == 1
+    assert len(ledger_snapshot(data_dir=None)["forecast_predictions"]) == 5
+    observed = calendar.next_session(p["projection_date"])
+    later = calendar.session_close(observed).to_pydatetime() + timedelta(hours=1)
+    actual = stock(
+        quote_timestamp=calendar.session_close(observed).isoformat(),
+        outcome_session=p["projection_date"],
+        outcome_close=104,
+    )
+    assert record_forecast_run({}, [actual], data_dir=None, now=later)["new_scores"] == 5
+    assert record_forecast_run({}, [actual], data_dir=None, now=later)["new_scores"] == 0
+    report = forward_report(data_dir=None, now=later)
+    shadow = report["models"][MODEL_VERSION]
+    assert shadow["comparisons"]["heuristic-v1"]["scoredPairCount"] == 1
+    assert shadow["comparisons"]["unchanged-price-v1"]["scoredPairCount"] == 1
+    assert shadow["readiness"]["decision"] == "not_ready"

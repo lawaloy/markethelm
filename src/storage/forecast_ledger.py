@@ -15,9 +15,9 @@ import src.storage.market_bars as market_bars
 from src.analysis.forecast_models import (
     PROTOCOL_VERSION,
     ForecastModel,
-    builtin_models,
     canonical_json,
     fingerprint,
+    live_models,
     protocol_definition,
 )
 from src.analysis.forecast_scoring import SCORING_VERSION, score_prediction
@@ -141,7 +141,13 @@ def _prediction(model: ForecastModel, projection: dict, snapshot: dict) -> dict:
 
 
 def _append_case(
-    conn, projection: dict, snapshot: dict, models: Sequence[ForecastModel], now: datetime
+    conn,
+    projection: dict,
+    snapshot: dict,
+    models: Sequence[ForecastModel],
+    now: datetime,
+    *,
+    automatic_enrollment: bool = False,
 ):
     generated = timestamp(projection.get("generated_at"))
     origin = last_completed_session(generated).isoformat()
@@ -174,12 +180,22 @@ def _append_case(
     case_id = fingerprint(
         canonical_json([PROTOCOL_VERSION, snapshot["symbol"], stamp(generated), target, input_hash])
     )
+    existing = conn.execute("SELECT * FROM forecast_cases WHERE id = ?", (case_id,)).fetchone()
+    if automatic_enrollment:
+        versions = (
+            json.loads(existing["model_versions_json"])
+            if existing
+            else [model.version for model in live_models(generated)]
+        )
+        available = {model.version: model for model in models}
+        if set(versions) - available.keys():
+            raise ForecastConflict("An enrolled model implementation is unavailable for replay")
+        models = tuple(available[version] for version in versions)
     versions_json = canonical_json(sorted(model.version for model in models))
     try:
         predictions = [(model, _prediction(model, projection, snapshot)) for model in models]
     except (TypeError, ValueError, KeyError) as exc:
         raise ForecastConflict("Configured forecast model produced an invalid prediction") from exc
-    existing = conn.execute("SELECT * FROM forecast_cases WHERE id = ?", (case_id,)).fetchone()
     if existing:
         if existing["model_versions_json"] != versions_json:
             raise ForecastConflict("Cannot attach a model to a previously recorded case")
@@ -358,7 +374,8 @@ def record_forecast_run(
     Historical projections are never imported into this prospective ledger.
     """
     now = timestamp(now or utc_now())
-    models = tuple(builtin_models() if models is None else models)
+    automatic_enrollment = models is None
+    models = tuple(live_models(now) if automatic_enrollment else models)
     if len({model.version for model in models}) != len(models):
         raise ValueError("Forecast model versions must be unique")
     required = {
@@ -389,7 +406,14 @@ def record_forecast_run(
                 counts["skipped_invalid"] += 1
                 continue
             try:
-                created, verified = _append_case(conn, projection, snapshot, models, now)
+                created, verified = _append_case(
+                    conn,
+                    projection,
+                    snapshot,
+                    models,
+                    now,
+                    automatic_enrollment=automatic_enrollment,
+                )
             except ForecastConflict:
                 raise
             except (TypeError, ValueError, OverflowError):
