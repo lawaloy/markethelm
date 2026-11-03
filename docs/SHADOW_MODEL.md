@@ -69,6 +69,8 @@ No model selection setting is needed. After deploying this code, new eligible
 tracker cases include all five versions atomically. Existing cases and scores
 remain unchanged, and the candidate is never attached to an old case.
 Cases generated before the artifact was frozen cannot use the candidate.
+Exact retries preserve the original enrolled versions, including cases first
+recorded by the previous release; enrollment uses generation time for new cases.
 The first eligible case per stock/origin remains the experiment's primary case;
 a later refresh does not replace an earlier case lacking this candidate.
 

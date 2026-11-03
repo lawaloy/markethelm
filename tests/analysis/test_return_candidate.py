@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from src.analysis.forecast_models import canonical_json, live_models
+from src.analysis.forecast_models import builtin_models, canonical_json, live_models
 from src.analysis.forward_evaluation import forward_report
 from src.analysis.market_calendar import get_market_calendar
 from src.analysis.projector import StockProjector
@@ -139,3 +139,50 @@ def test_new_live_cases_enroll_candidate_with_references_and_score_on_same_outco
     assert shadow["comparisons"]["unchanged-price-v1"]["scoredPairCount"] == 1
     assert shadow["readiness"]["decision"] == "not_ready"
     assert StockProjector.MODEL_VERSION == "heuristic-v1"
+
+
+@pytest.mark.parametrize("generation_offset", [-1, 1])
+def test_default_retry_preserves_pre_upgrade_model_set_and_commits_new_outcomes(
+    tmp_path, monkeypatch, generation_offset
+):
+    monkeypatch.setenv("MARKETHELM_DATABASE_URL", "")
+    candidate = bundled_candidate()
+    # Keep generation/recording on the same session anchor on either side of the freeze.
+    generated = candidate.frozen_at + timedelta(seconds=generation_offset)
+    p = projection(generated)
+    quote = stock(quote_timestamp=(generated - timedelta(seconds=1)).isoformat())
+    original = record_forecast_run(
+        {"AAPL": p}, [quote], data_dir=tmp_path, now=generated, models=builtin_models()
+    )
+    assert original["new_cases"] == 1
+    before = ledger_snapshot(data_dir=tmp_path)
+    retry_time = candidate.frozen_at + timedelta(seconds=2)
+    calendar = get_market_calendar()
+    session = calendar.date_to_session(retry_time.astimezone(calendar.tz).date().isoformat())
+    previous = calendar.previous_session(session).date().isoformat()
+    observed = stock(
+        symbol="EXTRA",
+        quote_timestamp=retry_time.isoformat(),
+        outcome_session=previous,
+        outcome_close=90,
+    )
+    result = record_forecast_run({"AAPL": p}, [quote, observed], data_dir=tmp_path, now=retry_time)
+    after = ledger_snapshot(data_dir=tmp_path)
+    assert result["replayed_cases"] == 1 and result["new_cases"] == 0
+    assert result["new_outcomes"] == 1
+    assert after["forecast_cases"] == before["forecast_cases"]
+    assert after["forecast_predictions"] == before["forecast_predictions"]
+    assert len(after["forecast_predictions"]) == 4
+
+
+def test_first_recording_after_freeze_uses_generation_time_for_enrollment(tmp_path, monkeypatch):
+    monkeypatch.setenv("MARKETHELM_DATABASE_URL", "")
+    frozen = bundled_candidate().frozen_at
+    generated = frozen - timedelta(seconds=1)
+    p = projection(generated)
+    quote = stock(quote_timestamp=(generated - timedelta(seconds=1)).isoformat())
+    result = record_forecast_run(
+        {"AAPL": p}, [quote], data_dir=tmp_path, now=frozen + timedelta(seconds=1)
+    )
+    assert result["new_cases"] == 1
+    assert len(ledger_snapshot(data_dir=tmp_path)["forecast_predictions"]) == 4
