@@ -14,7 +14,7 @@ Thank you for your interest in contributing! This document provides guidelines f
    cd markethelm
    ```
 
-   **End users** can install from PyPI: `pip install markethelm` — see [PyPI](https://pypi.org/project/markethelm/) and the main README.
+   **End users** can install from PyPI: `pip install markethelm`; see [PyPI](https://pypi.org/project/markethelm/) and the main README.
 
 3. **Create a virtual environment**:
 
@@ -207,7 +207,7 @@ repo template format:
 
 **Important:**
 
-- Use **`## What + Why`**, not `## Summary` — matches [`.github/pull_request_template.md`](.github/pull_request_template.md).
+- Use **`## What + Why`**, not `## Summary`; this matches [`.github/pull_request_template.md`](.github/pull_request_template.md).
 - Include the **`<!-- AUTO:START -->` / `<!-- AUTO:END -->`** markers so the [PR Description workflow](.github/workflows/pr-description.yml) can refresh the file list without overwriting your text.
 - Fill in **at least one What + Why bullet** before pushing again; until then, later syncs skip auto-updates so an empty template is not clobbered.
 - For Codex-driven work, prefer the installed GitHub app/connector for PR creation,
@@ -353,7 +353,7 @@ def test_function_returns_expected_value_when_given_valid_input(self):
 
 - **Hosted readiness:** Container acceptance, persistence, recovery, backup/restore,
   bounded load, retention, and incident procedures are implemented. External gates
-  are managed infrastructure, real-provider delivery, and monitoring sign-off — see
+  are managed infrastructure, real-provider delivery, and monitoring sign-off; see
   [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 - **Historical / accuracy:** Multi-day trends, exact XNYS-session **projection accuracy**, and confidence-band metrics (CLI, API, and Historical Trends UI) are in place; **risk-adjusted** and longer-horizon views are still open.
 - **Real-time:** Data is batch/daily; refresh is explicit (not streaming).
@@ -365,8 +365,8 @@ def test_function_returns_expected_value_when_given_valid_input(self):
 <details>
 <summary><b>Completed Milestones</b></summary>
 
-- ✅ **Web Dashboard (v0.3+)** — Market overview, projections, Historical Trends, **projection accuracy**, **Helmtower** (`/alerts`).
-- ✅ **Alerts** — `AlertEngine`, price/screening/RSI rules, shallow AND/OR compounds, cooldowns, **webhook** (JSON/Slack/Discord), **email** (SMTP + SendGrid/Mailgun), CLI, scheduled worker (`alerts run --loop`).
+- ✅ **Web Dashboard (v0.3+)**: Market overview, projections, Historical Trends, **projection accuracy**, **Helmtower** (`/alerts`).
+- ✅ **Alerts**: `AlertEngine`, price/screening/RSI rules, shallow AND/OR compounds, cooldowns, **webhook** (JSON/Slack/Discord), **email** (SMTP + SendGrid/Mailgun), CLI, scheduled worker (`alerts run --loop`).
 - ✅ **Projection validation**: exact XNYS trading-session targets and `markethelm backtest`, shared by the CLI, API, and Historical Trends UI, with confidence-band cohorts.
 
 </details>
@@ -380,7 +380,7 @@ def test_function_returns_expected_value_when_given_valid_input(self):
 <summary><b>Priority #1: Alert &amp; notification system</b></summary>
 
 **Status:** Local and hosted foundations are shipped; infrastructure validation and
-advanced rules/channels are next — [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
+advanced rules/channels are next; see [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
 **On `main`:**
 
@@ -388,7 +388,7 @@ advanced rules/channels are next — [docs/PROJECT_STATUS.md](docs/PROJECT_STATU
 - [x] Log + **webhook** notifiers (JSON, Slack, Discord)
 - [x] **SMTP email** + transactional providers (SendGrid, Mailgun)
 - [x] CLI: `alerts init`, `alerts list`, `alerts test`, `alerts run --loop`
-- [x] **Helmtower** — dashboard Settings UI for watches, email, webhooks, test send
+- [x] **Helmtower**: dashboard Settings UI for watches, email, webhooks, test send
 - [x] Delivery retry/backoff and per-channel status/history
 - [x] Accounts, tenant-scoped storage, database queue/worker, and auth lifecycle
 
@@ -413,7 +413,7 @@ advanced rules/channels are next — [docs/PROJECT_STATUS.md](docs/PROJECT_STATU
 
 - [x] Multi-day aggregation, summary API, charts (confidence, recommendations, expected move)
 - [x] Per-symbol historical chart with projection overlay
-- [x] **Projection accuracy** — `GET /api/history/accuracy`, UI on Historical Trends
+- [x] **Projection accuracy**: `GET /api/history/accuracy`, UI on Historical Trends
 - [x] Accuracy by **confidence band** and exact XNYS-session target alignment
 
 **Still to build:**
@@ -438,7 +438,7 @@ advanced rules/channels are next — [docs/PROJECT_STATUS.md](docs/PROJECT_STATU
 
 **Still to build:**
 
-- [ ] Code splitting / lazy routes, watchlist, shortcuts — see [dashboard/README.md](dashboard/README.md)
+- [ ] Code splitting / lazy routes, watchlist, shortcuts; see [dashboard/README.md](dashboard/README.md)
 
 ---
 

@@ -21,11 +21,16 @@ markethelm/
 |-- dashboard/
 |   |-- backend/                    # FastAPI routes, auth, rate limits, health
 |   `-- frontend/                   # React/TypeScript SPA
+|       `-- src/pages/              # Dashboard, brief, history, watches, accounts, recovery
 |-- config/                         # Exchange, filter, and alert examples
 |-- data/                           # Runtime data: SQLite sidecar, optional Markdown reports
 |-- tests/                          # Python unit/integration/security tests
+|-- e2e/                            # Playwright browser tests, fixtures and configuration
 `-- scripts/                        # Build, release, worker, and validation helpers
 ```
+
+The [dashboard layout and page map](../dashboard/README.md#project-layout) lists
+the current frontend views and routes.
 
 Business logic belongs in `src/` so the CLI, FastAPI routes, and workers can reuse
 it. The frontend communicates with FastAPI through `/api/*` routes. A production

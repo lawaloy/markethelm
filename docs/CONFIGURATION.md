@@ -59,9 +59,9 @@ Edit `config/filters.json`:
 <details>
 <summary><b>Run faster</b></summary>
 
-- **Lower `top_n`** — currently optimized around 20.
-- **Track fewer indices** — remove one from `config/exchanges.json`.
-- **Upgrade API tier** — paid Finnhub plans allow more calls per minute.
+- **Lower `top_n`**: currently optimized around 20.
+- **Track fewer indices**: remove one from `config/exchanges.json`.
+- **Upgrade API tier**: paid Finnhub plans allow more calls per minute.
 
 </details>
 
@@ -71,7 +71,7 @@ Edit `config/filters.json`:
 
 - Stay on the free tier (60 calls/min).
 - Run once per day when using a scheduler.
-- Use Docker for a consistent, lightweight deployment — see [DEPLOYMENT.md](DEPLOYMENT.md).
+- Use Docker for a consistent, lightweight deployment; see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ---
 
@@ -125,10 +125,10 @@ authentication, quotas, retry behavior, response normalization, and tests.
 
 ## Related
 
-- [USAGE.md](USAGE.md) — how to run the tracker
-- [ARCHITECTURE.md](ARCHITECTURE.md) — how screening and rate limiting work
-- [DEPLOYMENT.md](DEPLOYMENT.md) — production environment and secrets
-- [LOGGING.md](LOGGING.md) — console verbosity, log files, and browser logging
+- [USAGE.md](USAGE.md): how to run the tracker
+- [ARCHITECTURE.md](ARCHITECTURE.md): how screening and rate limiting work
+- [DEPLOYMENT.md](DEPLOYMENT.md): production environment and secrets
+- [LOGGING.md](LOGGING.md): console verbosity, log files, and browser logging
 
 ## Hosted daily collection
 

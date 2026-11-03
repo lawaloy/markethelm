@@ -22,7 +22,7 @@
 
 - The tool has built-in retry logic.
 - If it happens frequently:
-  - Lower `top_n` in `config/filters.json` — see [CONFIGURATION.md](CONFIGURATION.md).
+  - Lower `top_n` in `config/filters.json`; see [CONFIGURATION.md](CONFIGURATION.md).
   - Wait 5–10 minutes between runs.
   - Consider upgrading to a paid Finnhub tier.
 
@@ -60,7 +60,7 @@
 Yes. Finnhub's free tier is sufficient for daily tracking.
 
 **Can I track other stocks?**  
-Yes. Edit `config/exchanges.json` to add symbols or change indices — see [CONFIGURATION.md](CONFIGURATION.md).
+Yes. Edit `config/exchanges.json` to add symbols or change indices; see [CONFIGURATION.md](CONFIGURATION.md).
 
 **What if I miss a day?**  
 Rerun the tracker. Each run is independent; data is saved with the date.

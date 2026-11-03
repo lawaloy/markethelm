@@ -342,7 +342,7 @@ The projection files now record a five-session **XNYS** target, rather than addi
 five calendar days. Premarket and intraday runs anchor that horizon to the last
 completed exchange session, while post-close runs anchor to the session that just
 closed. A reusable backtester evaluates only the exact target
-session—it does not silently roll a missing close forward—and reports absolute
+session, keeps missing target closes explicit, and reports absolute
 error, direction accuracy, target-band coverage, and confidence calibration by
 confidence and recommendation cohort:
 

@@ -143,6 +143,15 @@ explains the metrics, missing-data handling, and requirements for a real-data
 baseline. The [projection guide](https://github.com/lawaloy/markethelm/blob/main/docs/STOCK_PROJECTIONS.md)
 explains how targets and scores are calculated.
 
+## Development and tests
+
+The repository includes Python unit and integration tests, React component tests,
+and Playwright browser tests. See the [dashboard verification guide](https://github.com/lawaloy/markethelm/blob/main/dashboard/README.md#verification)
+for local web checks and browser setup, and [Contributing](https://github.com/lawaloy/markethelm/blob/main/CONTRIBUTING.md#3-run-tests)
+for Python test commands. The [PR E2E workflow](https://github.com/lawaloy/markethelm/blob/main/.github/workflows/pr-e2e.yml)
+runs Chromium against the built dashboard and API, and preserves screenshots and
+an HTML report as workflow artifacts.
+
 ## Documentation
 
 | Topic                                | Guide                                                                                    |
