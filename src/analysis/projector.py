@@ -33,6 +33,8 @@ class StockProjector:
     - Support/resistance levels
     """
 
+    MODEL_VERSION = "heuristic-v1"
+
     def __init__(self):
         """Initialize the projector."""
         self.projection_days = 5  # Default projection window
@@ -182,6 +184,7 @@ class StockProjector:
                 "projection_date": target_session.isoformat(),
                 "projection_horizon_sessions": self.projection_days,
                 "projection_calendar": "XNYS",
+                "projection_model_version": self.MODEL_VERSION,
                 "generated_at": generated_at.isoformat(),
             }
 

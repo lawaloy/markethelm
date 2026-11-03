@@ -375,6 +375,13 @@ assess --data-dir data --days 365` to see the evidence shortfall. The gate requi
 two confidence cohorts of 30 or more samples. `capture` writes a report and input
 hash manifest only after all gates pass; see [USAGE.md](USAGE.md#projection-backtesting).
 
+New live runs also preserve immutable versioned predictions and paired benchmarks.
+Future exact-session outcomes produce append-only scores, with model/session
+comparisons available through `markethelm forecasts report`. See
+[immutable forecasts and forward evaluation](FORWARD_FORECASTS.md). This supplies
+prospective evidence; it does not change the current heuristic or calibrate its
+confidence for customers.
+
 A separate frozen temporal study now compares identical outcomes against an
 unchanged-price forecast and directional/confidence benchmarks. It fits cohort
 confidence and a residual-based range candidate only on outcomes available before

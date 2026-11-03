@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+import src.storage.forecast_ledger as forecast_ledger
 import src.storage.market_bars as market_bars
 import src.storage.projections_store as projections_store
 
@@ -107,6 +108,12 @@ class DataStorage:
             data_dir = os.getenv("DATA_DIR") or "data"
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(exist_ok=True)
+
+    def forecast_outcomes_due(self) -> List[str]:
+        return forecast_ledger.outcome_symbols_due(data_dir=self.data_dir)
+
+    def record_forecast_run(self, data: List[Dict], projections: Dict) -> Dict:
+        return forecast_ledger.record_forecast_run(projections, data, data_dir=self.data_dir)
 
     def save_daily_data(self, data: List[Dict], date: datetime.date = None) -> str:
         """

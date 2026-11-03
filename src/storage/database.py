@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 import src.storage.alert_watches as alert_watches
 from src.alerts.alert_paths import user_config_dir
 from src.core.logger import get_logger
+from src.storage.forecast_schema import schema_statements as forecast_schema_statements
 
 try:
     import psycopg
@@ -263,6 +264,11 @@ _MIGRATIONS = (
             "CREATE INDEX idx_market_bars_written ON market_bars(written_at)",
         ),
     ),
+    Migration(
+        version=9,
+        name="immutable_forward_forecasts",
+        statements=forecast_schema_statements(),
+    ),
 )
 
 LATEST_SCHEMA_VERSION = _MIGRATIONS[-1].version
@@ -404,6 +410,8 @@ def get_connection() -> Iterator[Any]:
 
 
 def _migration_statements(backend: str, migration: Migration) -> tuple[str, ...]:
+    if migration.version == 9 and backend == "postgresql":
+        return forecast_schema_statements("postgresql")
     if backend == "sqlite":
         return migration.statements
     return tuple(

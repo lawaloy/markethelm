@@ -106,10 +106,14 @@ class StockTrackerWorkflow:
             fetch_result = self._fetch_data(use_screener, top_n_stocks)
 
             if not fetch_result["success"]:
+                outcome_data = self._fetch_forecast_outcomes([])
+                if outcome_data:
+                    self.storage.record_forecast_run(outcome_data, {})
                 return fetch_result
 
             all_data = fetch_result["data"]
             all_index_data = fetch_result["index_data"]
+            outcome_data = self._fetch_forecast_outcomes(all_data)
 
             # Step 2: Save data
             logger.info("Step 2: Saving data")
@@ -122,6 +126,10 @@ class StockTrackerWorkflow:
             # Step 4: Generate projections
             logger.info("Step 4: Generating projections")
             projection_result = self._generate_projections(all_data)
+            forward_result = self.storage.record_forecast_run(
+                all_data + outcome_data, projection_result["projections"]
+            )
+            logger.info("Forward forecast recording: %s", forward_result)
 
             # Step 5: Generate AI summary
             logger.info("Step 5: Generating summary")
@@ -162,6 +170,7 @@ class StockTrackerWorkflow:
                     "screener_enabled": use_screener,
                     "ai_enabled": self.ai_summarizer.enabled,
                     "projections_enabled": True,
+                    "forward_forecasts": forward_result if isinstance(forward_result, dict) else {},
                 },
             }
 
@@ -263,6 +272,23 @@ class StockTrackerWorkflow:
         except Exception as e:
             logger.error(f"Data fetch failed: {str(e)}")
             return {"success": False, "error": f"Data fetch failed: {str(e)}"}
+
+    def _fetch_forecast_outcomes(self, current_data: List[Dict]) -> List[Dict]:
+        """Collect due outcomes without expanding the screened forecast universe."""
+        due = self.storage.forecast_outcomes_due()
+        if not isinstance(due, list):
+            return []
+        current = {
+            normalize_ticker(row.get("symbol")) for row in current_data if isinstance(row, dict)
+        }
+        additional = []
+        for symbol in due:
+            if symbol in current:
+                continue
+            fetched = self.fetcher.fetch_symbol_data(symbol, include_profile=False)
+            if fetched:
+                additional.append(fetched)
+        return additional
 
     def _save_data(self, data: List[Dict]) -> Dict[str, Any]:
         """Persist stock data to durable market_bars storage."""

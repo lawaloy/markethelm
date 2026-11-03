@@ -219,6 +219,9 @@ def test_capture_includes_hashed_validation_from_the_same_private_inputs(tmp_pat
         manifest["reportSha256"]
         == hashlib.sha256((output / "report.json").read_bytes()).hexdigest()
     )
+    forward = (output / "forward.json").read_bytes()
+    assert manifest["forwardReportSha256"] == hashlib.sha256(forward).hexdigest()
+    assert json.loads(forward)["status"] == "not_started"
     validation = (output / "validation.json").read_bytes()
     assert manifest["validationSha256"] == hashlib.sha256(validation).hexdigest()
     assert json.loads(validation)["inputs"] == manifest["inputs"]

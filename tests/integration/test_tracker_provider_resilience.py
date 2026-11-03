@@ -8,12 +8,14 @@ import threading
 import time
 from collections import Counter
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
+import pytest
 from fastapi.testclient import TestClient
 from requests.adapters import HTTPAdapter
 
@@ -21,10 +23,12 @@ import src.storage.market_refresh as refresh_store
 import src.workflows.market_refresh as refresh_worker
 from dashboard.backend.main import app
 from src.analysis.backtesting import backtest_data_dir
+from src.analysis.forward_evaluation import forward_report
 from src.analysis.market_calendar import get_market_calendar
 from src.cli.commands import main as cli_main
 from src.core.market_refresh import MarketRefreshSettings
 from src.storage.database import init_database
+from src.storage.forecast_ledger import ledger_snapshot
 from src.storage.market_bars import list_market_bar_dates
 from src.storage.projections_store import list_projection_dates
 from src.workflows.tracker import StockTrackerWorkflow
@@ -271,3 +275,49 @@ def test_scheduled_total_provider_failure_is_persisted_and_not_retried_immediate
         calls = server.request_counts.copy()
         assert refresh_worker.run_once(settings)["status"] == "retry_pending"
         assert server.request_counts == calls
+
+
+@pytest.mark.parametrize("second_symbol", ["NEW", "MALFORMED"])
+def test_forward_ledger_collects_due_outcome_after_symbol_leaves_screener(
+    monkeypatch, tmp_path, second_symbol
+):
+    """Real HTTP -> provider -> tracker -> immutable forecasts -> later exact outcome."""
+    clock = {"now": datetime(2026, 7, 6, 21, tzinfo=timezone.utc)}
+
+    class FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            value = clock["now"]
+            return value.astimezone(tz) if tz else value.replace(tzinfo=None)
+
+    monkeypatch.setattr("src.services.api_client.datetime", FrozenDateTime)
+    monkeypatch.setattr("src.analysis.projector.datetime", FrozenDateTime)
+    monkeypatch.setattr("src.storage.forecast_ledger.utc_now", lambda: clock["now"])
+    monkeypatch.setattr(
+        "src.storage.data_storage._data_date_for_filename", lambda: clock["now"].date()
+    )
+    symbols = ["GOOD"]
+    with _finnhub_stub() as server:
+        server.quote_timestamp = int(get_market_calendar().session_close("2026-07-06").timestamp())
+        workflow = _workflow(monkeypatch, tmp_path, server, symbols, load_alerts=False)
+        first = workflow.run(use_screener=False)
+        assert first["success"] is True
+        assert first["metadata"]["forward_forecasts"]["new_cases"] == 1
+        symbols[:] = [second_symbol]
+        clock["now"] = datetime(2026, 7, 14, 21, tzinfo=timezone.utc)
+        server.quote_timestamp = int(get_market_calendar().session_close("2026-07-14").timestamp())
+        second = workflow.run(use_screener=False)
+        if second_symbol == "NEW":
+            assert second["success"] is True
+            assert set(second["projections"]) == {"NEW"}
+            assert {row["symbol"] for row in second["data"]} == {"NEW"}
+            assert second["metadata"]["forward_forecasts"]["new_scores"] == 4
+            assert server.request_counts["NEW"] == 1
+        else:
+            assert second["success"] is False
+        assert server.request_counts["GOOD"] == 2  # initial input and due-only outcome
+    snapshot = ledger_snapshot(data_dir=tmp_path)
+    assert len(snapshot["forecast_cases"]) == (2 if second_symbol == "NEW" else 1)
+    assert len(snapshot["forecast_scores"]) == 4
+    report = forward_report(data_dir=tmp_path, now=clock["now"])
+    assert report["models"]["heuristic-v1"]["metrics"]["scoredCount"] == 1
