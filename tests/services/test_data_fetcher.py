@@ -311,3 +311,14 @@ def test_fetch_all_indices_skips_screener_when_20_or_fewer_symbols(
     mock_screener_cls.assert_not_called()
     assert sorted(fetched) == sorted(symbols)
     assert len(result["S&P 500"]) == 20
+
+
+def test_outcome_fetch_can_disable_profiles_without_changing_default_fetches():
+    client = MagicMock()
+    client.get_stock_data.return_value = {"symbol": "AAPL", "close": 190.0}
+    fetcher = StockDataFetcher(api_client=client, include_profile=True)
+    assert fetcher.fetch_symbol_data("AAPL", include_profile=False)["close"] == 190.0
+    client.get_stock_data.assert_called_once_with("AAPL", include_profile=False)
+    client.reset_mock()
+    fetcher.fetch_symbol_data("AAPL")
+    client.get_stock_data.assert_called_once_with("AAPL", include_profile=True)

@@ -48,15 +48,15 @@ manual refreshes remain separate operator actions; schedule those separately to
 avoid additional provider calls. Hosted notification delivery stays in the alert
 worker; the collector does not evaluate local alert rules.
 
-| Setting | Default | Meaning |
-| --- | --- | --- |
-| `MARKET_REFRESH_CLOSE_DELAY_SECONDS` | `900` | Delay after the actual exchange close, including early closes |
-| `MARKET_REFRESH_TIMEOUT_SECONDS` | `1800` | Maximum runtime per collection attempt; parent and child enforce it |
-| `MARKET_REFRESH_RETRY_SECONDS` | `900` | Wait between failed attempts |
-| `MARKET_REFRESH_MAX_ATTEMPTS` | `3` | Attempts per target session; a new session gets a new budget |
-| `MARKET_REFRESH_MIN_SYMBOLS` | `10` | Minimum fresh symbols with persisted bars, projections, and summary |
-| `MARKET_REFRESH_TOP_N` | `50` | Maximum selected stocks passed to the existing tracker |
-| `MARKET_REFRESH_POLL_SECONDS` | `60` | Poll interval in loop mode |
+| Setting                              | Default | Meaning                                                             |
+| ------------------------------------ | ------- | ------------------------------------------------------------------- |
+| `MARKET_REFRESH_CLOSE_DELAY_SECONDS` | `900`   | Delay after the actual exchange close, including early closes       |
+| `MARKET_REFRESH_TIMEOUT_SECONDS`     | `1800`  | Maximum runtime per collection attempt; parent and child enforce it |
+| `MARKET_REFRESH_RETRY_SECONDS`       | `900`   | Wait between failed attempts                                        |
+| `MARKET_REFRESH_MAX_ATTEMPTS`        | `3`     | Attempts per target session; a new session gets a new budget        |
+| `MARKET_REFRESH_MIN_SYMBOLS`         | `10`    | Minimum fresh symbols with persisted bars, projections, and summary |
+| `MARKET_REFRESH_TOP_N`               | `50`    | Maximum selected stocks passed to the existing tracker              |
+| `MARKET_REFRESH_POLL_SECONDS`        | `60`    | Poll interval in loop mode                                          |
 
 Adjust coverage, runtime, and the selected universe for the provider plan. The
 existing API client still controls provider rate limits. A quote counts as fresh
@@ -142,6 +142,13 @@ python scripts/staging_acceptance.py \
 ```
 
 </details>
+
+The live tracker also records an [append-only forecast ledger](FORWARD_FORECASTS.md)
+in the same shared database. Back up before applying schema migration 9 and deploy
+the matching image. Collecting future outcome evidence may require quote-only
+requests for stocks that leave the screener; these do not expand the forecast
+universe. Include the ledger in persistence/restore checks and inspect
+`markethelm forecasts report` separately from data-freshness probes.
 
 <a id="operational-readiness-drills"></a>
 <details>

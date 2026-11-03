@@ -48,7 +48,12 @@ class StockDataFetcher:
             raise
 
     def fetch_symbol_data(
-        self, symbol: str, period: str = "5d", max_retries: int = 3
+        self,
+        symbol: str,
+        period: str = "5d",
+        max_retries: int = 3,
+        *,
+        include_profile: Optional[bool] = None,
     ) -> Optional[Dict]:
         """
         Fetch data for a single symbol using official API.
@@ -57,13 +62,19 @@ class StockDataFetcher:
             symbol: Stock ticker symbol
             period: Time period (kept for compatibility, not used)
             max_retries: Maximum number of retry attempts
+            include_profile: Override profile fetching for quote-only outcome requests
 
         Returns:
             Dictionary with stock data or None if fetch fails
         """
         for attempt in range(max_retries):
             try:
-                data = self.api_client.get_stock_data(symbol, include_profile=self.include_profile)
+                data = self.api_client.get_stock_data(
+                    symbol,
+                    include_profile=(
+                        self.include_profile if include_profile is None else include_profile
+                    ),
+                )
                 return data
             except Exception as e:
                 if attempt < max_retries - 1:

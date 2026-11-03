@@ -161,6 +161,10 @@ unit tests and container-only integration tests cannot fully reproduce.
    only. Frozen temporal benchmark/calibration reports now accompany each archive
    and qualified capture; the initial real-data study remains research-only and
    does not justify promoting the current heuristic or calibration candidate.
+   Live runs now append immutable versioned forecasts and paired benchmarks; new
+   exact-session outcomes are scored once and reported by model/origin session.
+   Keep this prospective cohort separate from imported historical projections;
+   see [the frozen forward protocol](FORWARD_FORECASTS.md).
 3. **External staging sign-off:** in parallel, complete the ordered
    [external staging execution TODO](DEPLOYMENT.md#external-staging-execution-todo)
    against the chosen managed PostgreSQL, ingress, monitoring, and

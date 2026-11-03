@@ -11,6 +11,7 @@ from urllib.parse import quote
 import psycopg
 import pytest
 
+import src.storage.database as database
 from src.core.market_refresh import MarketRefreshSettings
 from src.storage.account_tokens import RESET_PASSWORD, consume_token, issue_token
 from src.storage.alert_jobs import (
@@ -22,6 +23,7 @@ from src.storage.alert_jobs import (
 )
 from src.storage.alert_watches import get_watch
 from src.storage.database import LATEST_SCHEMA_VERSION, get_connection, init_database
+from src.storage.forecast_ledger import ledger_connection, ledger_snapshot, record_forecast_run
 from src.storage.health import latest_worker_heartbeat, record_worker_heartbeat
 from src.storage.market_bars import list_market_bar_dates, upsert_market_bars
 from src.storage.market_refresh import claim_run, finish_run, load_state
@@ -40,6 +42,7 @@ from src.storage.users import (
     delete_user_account,
     get_user_by_id,
 )
+from tests.helpers.forecasts import LATER, NOW, outcome, projection, stock
 
 pytestmark = pytest.mark.integration
 
@@ -174,3 +177,47 @@ def test_postgresql_scheduled_collection_claims_are_atomic_and_fenced(postgresql
     assert finish_run(owners[0], later, settings, error_code="collector_failed") is False
     assert finish_run(replacement, later, settings, quote_count=10) is True
     assert claim_run("2026-07-06", later, settings) == (None, "already_collected")
+
+
+def test_postgresql_forward_forecasts_are_atomic_append_only_and_scored_once(postgresql_database):
+    init_database()
+
+    def record(_):
+        return record_forecast_run({"AAPL": projection()}, [stock()], data_dir=None, now=NOW)
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(pool.map(record, range(6)))
+    assert sum(result["new_cases"] for result in results) == 1
+    before = ledger_snapshot(data_dir=None)
+    assert len(before["forecast_cases"]) == 1
+    assert len(before["forecast_predictions"]) == 4
+    result = record_forecast_run({}, [outcome()], data_dir=None, now=LATER)
+    assert result["new_scores"] == 4
+    scored = ledger_snapshot(data_dir=None)
+    with pytest.raises(psycopg.errors.RaiseException, match="append-only"):
+        with ledger_connection(None, write=True) as conn:
+            conn.execute("UPDATE forecast_predictions SET target_mid = 999")
+    with pytest.raises(psycopg.errors.RaiseException, match="append-only"):
+        with ledger_connection(None, write=True) as conn:
+            conn.execute("DELETE FROM forecast_scores")
+    record_forecast_run(
+        {}, [outcome(outcome_close=120)], data_dir=None, now=LATER + timedelta(seconds=1)
+    )
+    assert ledger_snapshot(data_dir=None)["forecast_scores"] == scored["forecast_scores"]
+
+
+def test_postgresql_schema_eight_upgrades_without_reclassifying_history(
+    postgresql_database, monkeypatch
+):
+    migrations = database._MIGRATIONS
+    with monkeypatch.context() as legacy:
+        legacy.setattr(database, "_MIGRATIONS", migrations[:8])
+        legacy.setattr(database, "LATEST_SCHEMA_VERSION", 8)
+        init_database()
+        upsert_market_bars([stock()], "2026-07-06")
+        upsert_projections([projection()], "2026-07-06")
+    init_database()
+    with get_connection() as conn:
+        assert conn.execute("SELECT close FROM market_bars").fetchone()["close"] == 100
+        assert conn.execute("SELECT target_mid FROM projections").fetchone()["target_mid"] == 102
+    assert ledger_snapshot(data_dir=None)["forecast_cases"] == []

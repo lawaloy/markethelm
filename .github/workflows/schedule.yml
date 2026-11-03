@@ -141,6 +141,12 @@ jobs:
             --data-dir data \
             --days 365 > data/projection-validation.json
 
+      - name: Report immutable prospective model comparisons
+        if: steps.collection-day.outputs.run == 'true'
+        run: |
+          markethelm forecasts report --data-dir data \
+            --output data/forward-forecast-report.json
+
       - name: Capture qualified observed baseline
         if: >-
           steps.collection-day.outputs.run == 'true' &&
@@ -160,6 +166,7 @@ jobs:
             data/market_bars.sqlite
             data/projection-assessment.json
             data/projection-validation.json
+            data/forward-forecast-report.json
           if-no-files-found: error
           retention-days: 90
 

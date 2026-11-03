@@ -21,6 +21,7 @@ except ImportError:  # run as ``python scripts/<name>.py``: repo root not on sys
     import _repo_path
 
 from src.analysis.backtesting import backtest_data_dir
+from src.analysis.forward_evaluation import forward_report
 from src.analysis.projection_validation import validation_data_dir
 from src.core.logger import configure_logging
 from src.storage.database import database_enabled
@@ -203,6 +204,9 @@ def capture(data_dir: Path, output_dir: Path, days: int, **thresholds: object) -
         validation = (
             validation_report(snapshot_dir, days, report) if assessment["qualified"] else None
         )
+        forward = (
+            forward_report(data_dir=snapshot_dir, days=days) if assessment["qualified"] else None
+        )
     if not assessment["qualified"]:
         print(json.dumps(assessment, indent=2, allow_nan=False, sort_keys=True))
         print("Refusing to capture an unqualified observed baseline.", file=sys.stderr)
@@ -212,6 +216,8 @@ def capture(data_dir: Path, output_dir: Path, days: int, **thresholds: object) -
     (output_dir / "report.json").write_bytes(report_text.encode("utf-8"))
     validation_text = json.dumps(validation, indent=2, allow_nan=False, sort_keys=True) + "\n"
     (output_dir / "validation.json").write_bytes(validation_text.encode("utf-8"))
+    forward_text = json.dumps(forward, indent=2, allow_nan=False, sort_keys=True) + "\n"
+    (output_dir / "forward.json").write_bytes(forward_text.encode("utf-8"))
     manifest = {
         "schemaVersion": 1,
         "capturedAt": datetime.now(timezone.utc).isoformat(),
@@ -219,6 +225,7 @@ def capture(data_dir: Path, output_dir: Path, days: int, **thresholds: object) -
         "days": days,
         "reportSha256": hashlib.sha256(report_text.encode()).hexdigest(),
         "validationSha256": hashlib.sha256(validation_text.encode()).hexdigest(),
+        "forwardReportSha256": hashlib.sha256(forward_text.encode()).hexdigest(),
         "assessment": assessment,
         "inputs": inputs,
     }

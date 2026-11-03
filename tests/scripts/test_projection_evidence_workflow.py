@@ -40,7 +40,7 @@ def test_projection_evidence_runs_weekdays_after_xnys_close() -> None:
     assert "if: github.ref_name == github.event.repository.default_branch" in workflow
     assert "TZ: America/New_York" in workflow
     assert "scripts/projection_collection_day.py" in workflow
-    assert workflow.count("steps.collection-day.outputs.run == 'true'") == 8
+    assert workflow.count("steps.collection-day.outputs.run == 'true'") == 9
 
 
 def test_projection_evidence_restores_latest_unexpired_successful_archive() -> None:
@@ -72,6 +72,8 @@ def test_projection_evidence_preserves_progress_and_qualified_capture() -> None:
     assert "data/projection-assessment.json" in workflow
     assert "data/projection-validation.json" in workflow
     assert "scripts/projection_baseline.py validate" in workflow
+    assert "markethelm forecasts report" in workflow
+    assert "data/forward-forecast-report.json" in workflow
     assert "name: projection-observed-baseline-${{ github.run_id }}" in workflow
     assert workflow.count("retention-days: 90") == 2
 

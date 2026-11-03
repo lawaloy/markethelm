@@ -63,6 +63,18 @@ exact target-session close is missing. Use `--horizon-sessions` or `--calendar`
 to evaluate another explicit horizon, and `--all-samples` to include more than
 the default 300 sample rows.
 
+For new, immutable forecasts and their future outcomes, use the separate
+[forward evaluation ledger](FORWARD_FORECASTS.md):
+
+```bash
+markethelm forecasts report --data-dir data --output data/forward-forecast-report.json
+```
+
+Live tracker runs record versioned heuristic and benchmark forecasts automatically.
+The report evaluates the first verified case per stock/origin session, shows
+missing outcomes and paired model comparisons, and keeps promotion manual.
+It never reclassifies old mutable snapshots as forward evidence.
+
 The repository also preserves a synthetic scenario baseline that detects changes
 to evaluator semantics:
 
