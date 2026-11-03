@@ -21,6 +21,47 @@ deployed as an independent Vercel or Netlify application.
 
 </details>
 
+<a id="project-layout"></a>
+<details>
+<summary><b>Project layout and pages</b></summary>
+
+```text
+dashboard/
+|-- backend/                # FastAPI entry point, API routes and services
+|   `-- static/             # Generated production SPA
+`-- frontend/
+    `-- src/
+        |-- App.tsx         # Routes, shared navigation and providers
+        |-- components/     # Cards, charts, forms and layout
+        |-- contexts/       # Authentication and theme state
+        |-- pages/          # Views listed below
+        |-- services/       # API client
+        |-- types/          # Shared TypeScript types
+        `-- utils/          # Formatting, logging and other helpers
+
+e2e/                        # Repository-level Playwright browser suite
+|-- tests/                  # Smoke, accessibility, Helmtower and failure handling
+|-- scripts/                # Fixture seeding and README capture
+`-- playwright.config.ts    # Chromium project, screenshots and traces
+```
+
+The routes are defined in [`App.tsx`](frontend/src/App.tsx):
+
+| View                                      | Source in `frontend/src/pages/`              | Route                                                  |
+| ----------------------------------------- | -------------------------------------------- | ------------------------------------------------------ |
+| Market overview and brief                 | `Dashboard.tsx`, with embedded `Summary.tsx` | `/`; `/summary` redirects to `/#market-brief`          |
+| Historical trends and projection accuracy | `HistoricalTrends.tsx`                       | `/historical`                                          |
+| Helmtower watches and delivery settings   | `AlertsSettings.tsx`                         | `/alerts`                                              |
+| Sign in and registration                  | `SignIn.tsx`                                 | `/sign-in`                                             |
+| Password recovery and email verification  | `AccountRecovery.tsx`                        | `/forgot-password`, `/reset-password`, `/verify-email` |
+| Account settings                          | `AccountSettings.tsx`                        | `/account`                                             |
+
+`RequireAuth` wraps `/alerts` and `/account`; its behavior follows the configured
+authentication mode. `Summary.tsx` renders the market brief inside the dashboard;
+`/summary` redirects to that section.
+
+</details>
+
 <a id="development-with-hot-reload"></a>
 <details open>
 <summary><b>Development with hot reload</b></summary>
@@ -110,6 +151,46 @@ Run backend tests from the repository root:
 ```bash
 python3 -m pytest tests/dashboard/ -v
 ```
+
+The repository also has a Playwright browser suite in [`e2e/tests`](../e2e/tests).
+It runs Chromium against the built SPA and FastAPI, covering navigation, stock
+history, Helmtower behavior, API failure recovery, keyboard interactions, compact
+layouts and automated accessibility checks. React component tests run separately
+through `npm test` in `dashboard/frontend/`.
+
+For a local browser run, build the SPA as above. From the repository root,
+install the backend dependencies and start the API with isolated fixture data.
+This shell example is for macOS/Linux:
+
+```bash
+pip install -e ".[dev]" -r dashboard/backend/requirements.txt
+export DATA_DIR="$(mktemp -d)"
+export MARKETHELM_DATABASE_URL=""
+export FINNHUB_API_KEY=""
+export OPENAI_API_KEY=""
+python3 e2e/scripts/seed_ci_data.py
+python3 -m uvicorn dashboard.backend.main:app --host 127.0.0.1 --port 8000
+```
+
+Keep that API process running. In another terminal, from the repository root:
+
+```bash
+cd e2e
+npm ci
+npx playwright install chromium
+npm test
+```
+
+On Linux, use `npx playwright install --with-deps chromium` if browser system
+libraries are missing. `E2E_BASE_URL` overrides the default
+`http://127.0.0.1:8000`. Seeding and the API must use the same disposable `DATA_DIR`;
+the seeder writes representative market data into the configured store.
+
+[`PR E2E`](../.github/workflows/pr-e2e.yml) builds the SPA, seeds fixtures, checks
+the API with curl and runs Playwright on pull requests. It uploads screenshots
+and test output as `e2e-test-results` and the HTML report as `playwright-report`.
+See the workflow run's artifacts or its PR comment for these files. Browser
+coverage currently uses Chromium; cross-browser coverage remains future work.
 
 The complete required checks and development workflow are documented in
 [CONTRIBUTING.md](../CONTRIBUTING.md).

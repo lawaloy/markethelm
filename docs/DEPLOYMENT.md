@@ -188,7 +188,7 @@ Back up **both** persistence layers as one recovery set:
 2. Archive the persistent `DATA_DIR` at the same logical time.
 3. Record application version, schema version from `/health/ready`, timestamps,
    checksums, encryption/key reference, and retention expiry with the artifacts.
-4. Restore PostgreSQL into a newly named database—never over the active database.
+4. Restore PostgreSQL into a newly named database; never restore over the active database.
 5. Restore `DATA_DIR` into a new empty path, start one API and one worker against
    the restored stores, and run `staging_acceptance.py`.
 6. Compare user/config/migration counts and a sample of dated market files before
@@ -381,7 +381,7 @@ an unknown newer version. Before production, exercise the PostgreSQL integration
 gate documented in [ARCHITECTURE.md](ARCHITECTURE.md) and verify managed backups,
 restore, pooling, TLS, and worker concurrency in staging.
 
-This project runs **locally** and can run **on a host** (VPS, PaaS, containers) the same way: application code is deployed; **market data and projections live in `DATA_DIR/market_bars.sqlite` or the application database** configured via environment variables—not committed to git.
+This project runs **locally** and can run **on a host** (VPS, PaaS, containers) the same way: application code is deployed; **market data and projections live in `DATA_DIR/market_bars.sqlite` or the application database** configured via environment variables. These outputs are not committed to git.
 
 ---
 
@@ -488,7 +488,7 @@ for `--replace-existing` upsert semantics.
 | `MAILGUN_DOMAIN`                        | Tracker (alerts)                | Mailgun sending domain (e.g. `mg.yourdomain.com`)                                           |
 | `MAILGUN_API_BASE`                      | Tracker (alerts)                | Optional; default `https://api.mailgun.net` (EU: `https://api.eu.mailgun.net`)              |
 
-**Dev vs product email:** SMTP env vars suit **self-host / operator** mail (e.g. personal Gmail). For production, use a transactional provider with a verified domain — see [Transactional alert email](#transactional-alert-email) below.
+**Dev vs product email:** SMTP env vars suit **self-host / operator** mail (e.g. personal Gmail). For production, use a transactional provider with a verified domain; see [Transactional alert email](#transactional-alert-email) below.
 
 Never commit values; use your host’s secret manager or encrypted env.
 
@@ -572,7 +572,7 @@ export ALERT_EMAIL_FROM="MarketHelm Alerts <alerts@yourdomain.com>"
 <details>
 <summary><b>AWS SES (SMTP relay)</b></summary>
 
-SES works with the **SMTP** provider — no separate integration required:
+SES works with the **SMTP** provider, with no separate integration required:
 
 ```bash
 export ALERT_EMAIL_PROVIDER=smtp
@@ -607,9 +607,9 @@ Or use **Send test** in Helmtower (`/alerts`). The test uses the same provider a
 <details>
 <summary><b>Typical deployment layout</b></summary>
 
-1. **Backend** — Run FastAPI (`uvicorn` or `python main.py`) with `DATA_DIR` and `FINNHUB_API_KEY` set.
-2. **Frontend** — Build `dashboard/frontend` (`npm run build`) and serve `dist/` from a static host (or the same reverse proxy).
-3. **Scheduler** — Run the daily tracker on a schedule (cron, GitHub Actions with self-hosted runner, or the platform’s scheduler) **or** use the dashboard “Fetch New” flow if you only trigger manually.
+1. **Backend**: Run `markethelm-web` or `uvicorn dashboard.backend.main:app` with `DATA_DIR` and `FINNHUB_API_KEY` set.
+2. **Frontend**: Build `dashboard/frontend` (`npm run build`). The output goes to `dashboard/backend/static/`, which FastAPI serves with the API.
+3. **Scheduler**: Run the daily tracker on a schedule (cron, GitHub Actions, or the platform’s scheduler) **or** use the dashboard “Fetch New” flow if you only trigger manually.
 
 **CORS:** set `CORS_ORIGINS` to your frontend origin so the browser can call the API.
 
@@ -621,17 +621,17 @@ Or use **Send test** in Helmtower (`/alerts`). The test uses the same provider a
 <details>
 <summary><b>When you go live</b></summary>
 
-Use this when moving from **local dev** to a **public host**. For day-to-day development, Gmail SMTP in `.env` is enough — skip this section until you deploy.
+Use this when moving from **local dev** to a **public host**. For day-to-day development, Gmail SMTP in `.env` is enough; skip this section until you deploy.
 
-1. **Host and ingress** — provision TLS, a persistent `DATA_DIR`, and an explicitly trusted reverse-proxy CIDR.
-2. **Database** — use managed PostgreSQL for hosted mode; set `MARKETHELM_DATABASE_URL`, verify migrations, pooling, TLS, backups, and restore.
-3. **Deploy API and worker** — run `markethelm-web` plus a separate `markethelm alerts run --loop` process using the same database and secrets.
-4. **Auth** — set `MARKETHELM_AUTH_SECRET`, `MARKETHELM_PUBLIC_URL`, and email-verification policy; test registration, verification, reset, password change, logout, and deletion.
-5. **Daily tracker** — schedule `markethelm` and persist its shared market-data output.
-6. **Email** — verify a sender domain and configure SendGrid, Mailgun, or SES SMTP. Users only enter their recipient address in Helmtower.
-7. **Operations** — configure rate limits/proxies, collect `/metrics`, and monitor `/health/ready` plus `/health/worker`.
-8. **Secrets** — keep all credentials in the host secret manager; never commit `.env`.
-9. **Staging proof** — test cross-tenant isolation, a real alert with the dashboard stopped, provider failures/retries, backup/restore, and worker recovery before public traffic.
+1. **Host and ingress**: provision TLS, a persistent `DATA_DIR`, and an explicitly trusted reverse-proxy CIDR.
+2. **Database**: use managed PostgreSQL for hosted mode; set `MARKETHELM_DATABASE_URL`, verify migrations, pooling, TLS, backups, and restore.
+3. **Deploy API and worker**: run `markethelm-web` plus a separate `markethelm alerts run --loop` process using the same database and secrets.
+4. **Auth**: set `MARKETHELM_AUTH_SECRET`, `MARKETHELM_PUBLIC_URL`, and email-verification policy; test registration, verification, reset, password change, logout, and deletion.
+5. **Daily tracker**: schedule `markethelm` and persist its shared market-data output.
+6. **Email**: verify a sender domain and configure SendGrid, Mailgun, or SES SMTP. Users only enter their recipient address in Helmtower.
+7. **Operations**: configure rate limits/proxies, collect `/metrics`, and monitor `/health/ready` plus `/health/worker`.
+8. **Secrets**: keep all credentials in the host secret manager; never commit `.env`.
+9. **Staging proof**: test cross-tenant isolation, a real alert with the dashboard stopped, provider failures/retries, backup/restore, and worker recovery before public traffic.
 
 Roadmap context: [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
@@ -648,10 +648,10 @@ The current product direction and capability matrix are in
 [PROJECT_STATUS.md](PROJECT_STATUS.md#product-direction). If you later add
 **automated buy/sell**:
 
-1. **Broker API** — You need a broker that exposes **order placement** (e.g. Alpaca, Interactive Brokers, Tradier). Finnhub is **market data**, not a substitute for execution.
-2. **Secrets** — Trading keys must live only in **host secrets**; rotate and scope to paper vs live.
-3. **Persistence** — Use a **database** (e.g. PostgreSQL) for orders, positions, and audit logs—**before** trusting real money.
-4. **Safety** — Paper trading first, hard limits (max position, max loss), kill switch, full logging.
+1. **Broker API**: You need a broker that exposes **order placement** (e.g. Alpaca, Interactive Brokers, Tradier). Finnhub is **market data**, not a substitute for execution.
+2. **Secrets**: Trading keys must live only in **host secrets**; rotate and scope to paper vs live.
+3. **Persistence**: Use a **database** (e.g. PostgreSQL) for orders, positions, and audit logs **before** trusting real money.
+4. **Safety**: Paper trading first, hard limits (max position, max loss), kill switch, full logging.
 
 This is **not legal or financial advice**; follow your broker’s terms and applicable regulations.
 
@@ -746,9 +746,9 @@ Mount a persistent volume for `DATA_DIR` so history survives pod restarts.
 
 Common patterns:
 
-- **AWS** — ECS task + EventBridge schedule; secrets in Secrets Manager.
-- **GCP** — Cloud Run job + Cloud Scheduler; secrets in Secret Manager.
-- **Azure** — Container Instances + Logic Apps; secrets in Key Vault.
+- **AWS**: ECS task + EventBridge schedule; secrets in Secrets Manager.
+- **GCP**: Cloud Run job + Cloud Scheduler; secrets in Secret Manager.
+- **Azure**: Container Instances + Logic Apps; secrets in Key Vault.
 
 Store API keys in the platform secret manager; never bake them into images.
 
@@ -770,7 +770,7 @@ Store API keys in the platform secret manager; never bake them into images.
 
 ## Related
 
-- [PROJECT_STATUS.md](PROJECT_STATUS.md) — roadmap and future execution notes
-- [Dashboard README](../dashboard/README.md) — local dev, env vars
-- [USAGE.md](USAGE.md) — CLI entry points and output files
-- [Contributing](../CONTRIBUTING.md) — development workflow
+- [PROJECT_STATUS.md](PROJECT_STATUS.md): roadmap and future execution notes
+- [Dashboard README](../dashboard/README.md): local dev, env vars
+- [USAGE.md](USAGE.md): CLI entry points and output files
+- [Contributing](../CONTRIBUTING.md): development workflow

@@ -1,10 +1,14 @@
-# MarketHelm — tests
+# MarketHelm tests
 
 <a id="overview"></a>
 <details open>
 <summary><b>Overview</b></summary>
 
-This directory contains unit tests for the MarketHelm project. The test layout mirrors the project structure so that each source module has a corresponding test package.
+This directory contains Python unit, integration and security tests for MarketHelm.
+The test layout mirrors the source packages. React component tests live beside
+the frontend code, and Playwright browser tests live in [`e2e/tests`](../e2e/tests).
+See the [dashboard verification guide](../dashboard/README.md#verification) for
+frontend and browser test commands.
 
 </details>
 

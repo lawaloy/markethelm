@@ -13,7 +13,7 @@ How to run the daily tracker after [install](../README.md#quick-start).
 <summary><b>Option 1: CLI (recommended for daily use)</b></summary>
 
 ```bash
-# Main entry point — formatted console output
+# Main entry point: formatted console output
 python main.py
 ```
 
@@ -237,7 +237,7 @@ After install:
 markethelm-web
 ```
 
-Open **<http://localhost:8000>** — API docs at **/docs**.
+Open **<http://localhost:8000>**. API docs are at **/docs**.
 
 For React development (Vite on port 3000, hot reload), see
 [dashboard/README.md](../dashboard/README.md#development-with-hot-reload).
@@ -293,7 +293,7 @@ Each run writes:
 | `data/projections_YYYY-MM-DD.md` (optional) | Human-readable projection report            |
 | `logs/markethelm_YYYY-MM-DD.log`            | Detailed execution logs                     |
 
-Set `DATA_DIR` to change the output location — see [DEPLOYMENT.md](DEPLOYMENT.md).
+Set `DATA_DIR` to change the output location; see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ---
 
@@ -357,6 +357,6 @@ Index Performance:
 
 ## Related
 
-- [CONFIGURATION.md](CONFIGURATION.md) — indices and screening filters
-- [DEPLOYMENT.md](DEPLOYMENT.md) — scheduling daily runs (cron, Docker, Kubernetes)
-- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — errors and FAQ
+- [CONFIGURATION.md](CONFIGURATION.md): indices and screening filters
+- [DEPLOYMENT.md](DEPLOYMENT.md): scheduling daily runs (cron, Docker, Kubernetes)
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md): errors and FAQ

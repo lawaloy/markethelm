@@ -51,7 +51,7 @@ On 856 held-out forecasts:
 | Current heuristic             |                    4.038% |                   4.037% |              50.117% |
 | Unchanged price               |                    3.950% |                   3.950% | 0% (flat prediction) |
 | Ridge return candidate        |                    3.915% |                   3.915% |              58.995% |
-| Always-up direction reference |                         — |                        — |              58.995% |
+| Always-up direction reference |                       N/A |                      N/A |              58.995% |
 
 The candidate improves equal-session price error by about 3.0% versus the
 incumbent and 0.9% versus unchanged price. Both fall below the frozen 5%
