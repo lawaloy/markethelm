@@ -15,9 +15,9 @@ import src.storage.market_bars as market_bars
 from src.analysis.forecast_models import (
     PROTOCOL_VERSION,
     ForecastModel,
-    builtin_models,
     canonical_json,
     fingerprint,
+    live_models,
     protocol_definition,
 )
 from src.analysis.forecast_scoring import SCORING_VERSION, score_prediction
@@ -358,7 +358,7 @@ def record_forecast_run(
     Historical projections are never imported into this prospective ledger.
     """
     now = timestamp(now or utc_now())
-    models = tuple(builtin_models() if models is None else models)
+    models = tuple(live_models(now) if models is None else models)
     if len({model.version for model in models}) != len(models):
         raise ValueError("Forecast model versions must be unique")
     required = {

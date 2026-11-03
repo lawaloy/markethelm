@@ -1,0 +1,217 @@
+{
+  "artifactFileSha256": "c075e868c4f5c4c6a916a8cf51558f69bc11ac8682c938cf2cc1eba92e1640b9",
+  "artifactSha256": "3188367b4678c5fae98fab4ecfc86bc27a8abec5e5efeaea6bae3f74cf630bfb",
+  "comparisons": {
+    "incumbent": {
+      "relativeErrorImprovementPct": 3.023942470834877,
+      "sessionWinFraction": 0.6
+    },
+    "unchangedPrice": {
+      "relativeErrorImprovementPct": 0.8839938435410919,
+      "sessionWinFraction": 0.8
+    }
+  },
+  "directionReferences": {
+    "alwaysDownAccuracyPct": 41.00467289719626,
+    "alwaysUpAccuracyPct": 58.99532710280374
+  },
+  "heldOut": {
+    "candidate": {
+      "byOriginSession": {
+        "2026-10-16": 3.7407250520054247,
+        "2026-10-19": 3.9856529830596057,
+        "2026-10-20": 3.4847585283755445,
+        "2026-10-21": 3.363401500882609,
+        "2026-10-22": 5.001958857850716
+      },
+      "directionalAccuracyPct": 58.99532710280374,
+      "equalSessionErrorPct": 3.91529938443478,
+      "meanAbsErrorPct": 3.91538157321822,
+      "originSessionCount": 5,
+      "sampleCount": 856
+    },
+    "incumbent": {
+      "byOriginSession": {
+        "2026-10-16": 3.6448213435463686,
+        "2026-10-19": 4.2817284310545,
+        "2026-10-20": 3.4950174627277897,
+        "2026-10-21": 3.284440759296822,
+        "2026-10-22": 5.480930327080197
+      },
+      "directionalAccuracyPct": 50.116822429906534,
+      "equalSessionErrorPct": 4.037387664741136,
+      "meanAbsErrorPct": 4.037673109561595,
+      "originSessionCount": 5,
+      "sampleCount": 856
+    },
+    "unchangedPrice": {
+      "byOriginSession": {
+        "2026-10-16": 3.8099674935879975,
+        "2026-10-19": 4.092774640680474,
+        "2026-10-20": 3.5089922616554086,
+        "2026-10-21": 3.375258298824655,
+        "2026-10-22": 4.964102694700019
+      },
+      "directionalAccuracyPct": 0,
+      "equalSessionErrorPct": 3.950219077889711,
+      "meanAbsErrorPct": 3.95038561476213,
+      "originSessionCount": 5,
+      "sampleCount": 856
+    }
+  },
+  "limitations": [
+    "These archived outcomes were previously observed; this is not fresh evidence.",
+    "Overlapping sessions and symbols are correlated.",
+    "Point-only candidate; confidence and intervals are not estimated.",
+    "No holdout-driven parameter search and no automatic promotion."
+  ],
+  "modelVersion": "ridge-return-v1",
+  "promotion": "shadow_only",
+  "recipe": {
+    "feature_return_scale": 0.05,
+    "features": [
+      "constant",
+      "clipped incumbent return / 0.05"
+    ],
+    "outputs": "point only; no confidence or interval estimate",
+    "prediction_return_cap": 0.05,
+    "ridge_penalty": 1.0,
+    "target": "exact five-session close / rounded projection origin price - 1",
+    "training_return_cap": 0.2,
+    "version": "ridge-return-recipe-v1",
+    "weighting": "equal origin-session weights, then equal stocks within session"
+  },
+  "schemaVersion": 1,
+  "sourceSummary": {
+    "bandCoveragePct": 3.934,
+    "byConfidenceBand": {
+      "60-69": {
+        "bandCoveragePct": 2.212,
+        "calibrationGapPct": 13.183,
+        "count": 1266,
+        "directionalAccuracyPct": 51.817,
+        "meanAbsErrorPct": 3.329,
+        "meanConfidence": 65.0,
+        "medianAbsErrorPct": 2.744
+      },
+      "70-79": {
+        "bandCoveragePct": 3.954,
+        "calibrationGapPct": 17.061,
+        "count": 1138,
+        "directionalAccuracyPct": 55.36,
+        "meanAbsErrorPct": 3.992,
+        "meanConfidence": 72.421,
+        "medianAbsErrorPct": 2.992
+      },
+      "80-89": {
+        "bandCoveragePct": 6.823,
+        "calibrationGapPct": 26.218,
+        "count": 513,
+        "directionalAccuracyPct": 55.75,
+        "meanAbsErrorPct": 4.916,
+        "meanConfidence": 81.969,
+        "medianAbsErrorPct": 3.816
+      },
+      "90-100": {
+        "bandCoveragePct": 8.176,
+        "calibrationGapPct": 25.849,
+        "count": 159,
+        "directionalAccuracyPct": 64.151,
+        "meanAbsErrorPct": 5.885,
+        "meanConfidence": 90.0,
+        "medianAbsErrorPct": 4.783
+      }
+    },
+    "byRecommendation": {
+      "BUY": {
+        "bandCoveragePct": 5.319,
+        "calibrationGapPct": 10.319,
+        "count": 564,
+        "directionalAccuracyPct": 68.44,
+        "meanAbsErrorPct": 3.613,
+        "meanConfidence": 78.759,
+        "medianAbsErrorPct": 2.71
+      },
+      "HOLD": {
+        "bandCoveragePct": 1.947,
+        "calibrationGapPct": 15.089,
+        "count": 1849,
+        "directionalAccuracyPct": 51.487,
+        "meanAbsErrorPct": 3.621,
+        "meanConfidence": 66.577,
+        "medianAbsErrorPct": 2.858
+      },
+      "SELL": {
+        "bandCoveragePct": 6.604,
+        "calibrationGapPct": 30.118,
+        "count": 424,
+        "directionalAccuracyPct": 48.821,
+        "meanAbsErrorPct": 4.885,
+        "meanConfidence": 78.939,
+        "medianAbsErrorPct": 4.049
+      },
+      "STRONG BUY": {
+        "bandCoveragePct": 11.719,
+        "calibrationGapPct": 30.0,
+        "count": 128,
+        "directionalAccuracyPct": 53.906,
+        "meanAbsErrorPct": 5.939,
+        "meanConfidence": 83.906,
+        "medianAbsErrorPct": 4.8
+      },
+      "STRONG SELL": {
+        "bandCoveragePct": 10.811,
+        "calibrationGapPct": 30.045,
+        "count": 111,
+        "directionalAccuracyPct": 54.054,
+        "meanAbsErrorPct": 5.86,
+        "meanConfidence": 84.099,
+        "medianAbsErrorPct": 5.345
+      }
+    },
+    "calendar": "XNYS",
+    "calibrationGapPct": 17.446,
+    "directionalAccuracyPct": 54.421,
+    "evaluationCoveragePct": 98.118,
+    "horizonSessions": 5,
+    "invalidCount": 0,
+    "legacyOutcomeCount": 0,
+    "legacyProjectionCount": 0,
+    "meanAbsErrorPct": 3.971,
+    "meanConfidence": 71.868,
+    "medianAbsErrorPct": 3.025,
+    "missingActualCount": 59,
+    "pendingCount": 1044,
+    "projectionCount": 4179,
+    "sampleCount": 3076,
+    "schemaVersion": 1,
+    "timestampedProjectionCount": 3076,
+    "validProjectionCount": 4179,
+    "verifiedOutcomeCount": 3076
+  },
+  "split": {
+    "earliestHoldoutGeneratedAt": "2026-10-17T00:52:14.712259+00:00",
+    "holdoutRunDates": [
+      "2026-10-16",
+      "2026-10-19",
+      "2026-10-20",
+      "2026-10-21",
+      "2026-10-22"
+    ],
+    "holdoutSampleCount": 856,
+    "latestTrainingOutcomeAvailableAt": "2026-10-17T00:52:14.692059+00:00",
+    "purgedUnavailableOutcomeCount": 855,
+    "trainingRunDates": [
+      "2026-09-29",
+      "2026-09-30",
+      "2026-10-01",
+      "2026-10-02",
+      "2026-10-05",
+      "2026-10-06",
+      "2026-10-07",
+      "2026-10-08"
+    ],
+    "trainingSampleCount": 1365
+  },
+  "status": "retrospective_diagnostic"
+}

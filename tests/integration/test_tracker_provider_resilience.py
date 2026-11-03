@@ -8,7 +8,7 @@ import threading
 import time
 from collections import Counter
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from types import SimpleNamespace
@@ -25,6 +25,7 @@ from dashboard.backend.main import app
 from src.analysis.backtesting import backtest_data_dir
 from src.analysis.forward_evaluation import forward_report
 from src.analysis.market_calendar import get_market_calendar
+from src.analysis.return_candidate import MODEL_VERSION, bundled_candidate
 from src.cli.commands import main as cli_main
 from src.core.market_refresh import MarketRefreshSettings
 from src.storage.database import init_database
@@ -278,11 +279,22 @@ def test_scheduled_total_provider_failure_is_persisted_and_not_retried_immediate
 
 
 @pytest.mark.parametrize("second_symbol", ["NEW", "MALFORMED"])
+@pytest.mark.parametrize("with_candidate", [False, True])
 def test_forward_ledger_collects_due_outcome_after_symbol_leaves_screener(
-    monkeypatch, tmp_path, second_symbol
+    monkeypatch, tmp_path, second_symbol, with_candidate
 ):
     """Real HTTP -> provider -> tracker -> immutable forecasts -> later exact outcome."""
-    clock = {"now": datetime(2026, 7, 6, 21, tzinfo=timezone.utc)}
+    calendar = get_market_calendar()
+    if with_candidate:
+        anchor = calendar.date_to_session(
+            bundled_candidate().frozen_at.date().isoformat(), direction="next"
+        )
+        origin = calendar.next_session(anchor).date().isoformat()
+    else:
+        origin = "2026-07-06"
+    observed = calendar.sessions_window(origin, 7)[-1].date().isoformat()
+    model_count = 5 if with_candidate else 4
+    clock = {"now": calendar.session_close(origin).to_pydatetime() + timedelta(hours=1)}
 
     class FrozenDateTime(datetime):
         @classmethod
@@ -298,26 +310,31 @@ def test_forward_ledger_collects_due_outcome_after_symbol_leaves_screener(
     )
     symbols = ["GOOD"]
     with _finnhub_stub() as server:
-        server.quote_timestamp = int(get_market_calendar().session_close("2026-07-06").timestamp())
+        server.quote_timestamp = int(calendar.session_close(origin).timestamp())
         workflow = _workflow(monkeypatch, tmp_path, server, symbols, load_alerts=False)
         first = workflow.run(use_screener=False)
         assert first["success"] is True
         assert first["metadata"]["forward_forecasts"]["new_cases"] == 1
         symbols[:] = [second_symbol]
-        clock["now"] = datetime(2026, 7, 14, 21, tzinfo=timezone.utc)
-        server.quote_timestamp = int(get_market_calendar().session_close("2026-07-14").timestamp())
+        clock["now"] = calendar.session_close(observed).to_pydatetime() + timedelta(hours=1)
+        server.quote_timestamp = int(calendar.session_close(observed).timestamp())
         second = workflow.run(use_screener=False)
         if second_symbol == "NEW":
             assert second["success"] is True
             assert set(second["projections"]) == {"NEW"}
             assert {row["symbol"] for row in second["data"]} == {"NEW"}
-            assert second["metadata"]["forward_forecasts"]["new_scores"] == 4
+            assert second["metadata"]["forward_forecasts"]["new_scores"] == model_count
             assert server.request_counts["NEW"] == 1
         else:
             assert second["success"] is False
         assert server.request_counts["GOOD"] == 2  # initial input and due-only outcome
     snapshot = ledger_snapshot(data_dir=tmp_path)
     assert len(snapshot["forecast_cases"]) == (2 if second_symbol == "NEW" else 1)
-    assert len(snapshot["forecast_scores"]) == 4
+    assert len(snapshot["forecast_scores"]) == model_count
     report = forward_report(data_dir=tmp_path, now=clock["now"])
     assert report["models"]["heuristic-v1"]["metrics"]["scoredCount"] == 1
+    if with_candidate:
+        shadow = report["models"][MODEL_VERSION]
+        assert shadow["metrics"]["scoredCount"] == 1
+        assert shadow["comparisons"]["heuristic-v1"]["scoredPairCount"] == 1
+        assert first["projections"]["GOOD"]["projection_model_version"] == "heuristic-v1"

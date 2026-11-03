@@ -2,7 +2,9 @@
 
 New live tracker runs record the existing heuristic and simple benchmarks before
 their outcomes happen. This ledger is separate from the mutable daily projection
-view used by the dashboard. It does not change price targets or deploy a new model.
+view used by the dashboard. It does not change customer-facing price targets.
+The first [ridge return candidate](SHADOW_MODEL.md) joins new cases in shadow
+mode after its frozen artifact timestamp; prior cases remain unchanged.
 
 ## What is preserved
 
@@ -15,7 +17,8 @@ recording. A consistent transaction records:
 - forecast identity, symbol, generation/recording times, completed origin session,
   exact fifth XNYS target session, and origin price;
 - the numeric quote inputs actually available, their provider timestamp and SHA-256;
-- the heuristic, unchanged-price, always-up and always-down forecasts together;
+- the heuristic, unchanged-price, always-up and always-down references together;
+- the frozen ridge return shadow candidate on new cases after its enrollment time;
 - verified outcome observations and the first exact-session score for each forecast.
 
 Inputs use an explicit allowlist of quote fields. Credentials and arbitrary
