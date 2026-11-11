@@ -119,6 +119,30 @@ def test_new_session_has_a_new_retry_budget(refresh_db):
     assert load_state()["attempts"] == 1
 
 
+def test_weekend_storage_key_does_not_verify_the_weekday_session(refresh_db):
+    session = "2026-07-10"
+    written = datetime(2026, 7, 11, 1, tzinfo=timezone.utc)
+    quote_at = get_market_calendar().session_close(session).to_pydatetime()
+    stamp = written.isoformat()
+    with get_connection() as conn:
+        for index in range(2):
+            symbol = f"TEST{index}"
+            conn.execute(
+                "INSERT INTO market_bars (trade_date, symbol, close, quote_timestamp, written_at) "
+                "VALUES (?, ?, 100, ?, ?)",
+                ("2026-07-11", symbol, quote_at.isoformat(), stamp),
+            )
+            conn.execute(
+                "INSERT INTO projections (run_date, symbol, written_at) VALUES (?, ?, ?)",
+                ("2026-07-11", symbol, stamp),
+            )
+        conn.execute(
+            "INSERT INTO daily_summaries (summary_date, written_at) VALUES (?, ?)",
+            ("2026-07-11", stamp),
+        )
+    assert verified_quote_count(session, stamp, written) == 0
+
+
 @pytest.mark.parametrize("projections,summary", [(False, True), (True, False), (False, False)])
 def test_bars_without_complete_persisted_outputs_do_not_count(refresh_db, projections, summary):
     seed_snapshot("2026-07-06", projections=projections, summary=summary)

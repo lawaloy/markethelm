@@ -3,7 +3,7 @@
 import os
 import subprocess
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import Mock
 
 import pytest
@@ -30,7 +30,7 @@ def db(tmp_path, monkeypatch):
 
 
 def test_success_exit_without_persisted_fresh_data_is_a_failure(db, monkeypatch):
-    monkeypatch.setattr(worker, "_run_collector", lambda _: None)
+    monkeypatch.setattr(worker, "_run_collector", lambda *args, **kwargs: None)
     result = worker.run_once(SETTINGS)
     assert result["status"] == "error"
     assert result["error_code"] == "insufficient_fresh_data"
@@ -38,7 +38,7 @@ def test_success_exit_without_persisted_fresh_data_is_a_failure(db, monkeypatch)
 
 
 def test_provider_exception_is_redacted_and_the_lease_is_released(db, monkeypatch, caplog):
-    def fail(_):
+    def fail(*args, **kwargs):
         raise RuntimeError("token=DO-NOT-LOG")
 
     monkeypatch.setattr(worker, "_run_collector", fail)
@@ -56,7 +56,7 @@ def test_interrupted_run_remains_failed_and_can_be_retried(db, monkeypatch, stag
         raise KeyboardInterrupt
 
     monkeypatch.setattr(
-        worker, "_run_collector", interrupt if stage == "collection" else lambda _: None
+        worker, "_run_collector", interrupt if stage == "collection" else lambda *a, **k: None
     )
     monkeypatch.setattr(store, "verified_quote_count", interrupt)
     with pytest.raises(KeyboardInterrupt):
@@ -78,7 +78,7 @@ def test_timeout_terminates_and_reaps_child(monkeypatch):
     child.wait.side_effect = [subprocess.TimeoutExpired("collector", 2), 0]
     child.poll.return_value = None
     monkeypatch.setattr(worker.subprocess, "Popen", lambda *a, **kw: child)
-    assert worker._run_collector(SETTINGS) == "timeout"
+    assert worker._run_collector(SETTINGS, "2026-07-06") == "timeout"
     child.kill.assert_called_once()
     assert child.wait.call_count == 2
 
@@ -89,7 +89,7 @@ def test_process_exit_and_watchdog_timeout_have_distinct_results(monkeypatch):
         child.wait.return_value = code
         child.poll.return_value = code
         monkeypatch.setattr(worker.subprocess, "Popen", lambda *a, **kw: child)
-        assert worker._run_collector(SETTINGS) == expected
+        assert worker._run_collector(SETTINGS, "2026-07-06") == expected
         child.kill.assert_not_called()
 
 
@@ -182,3 +182,63 @@ def test_packaged_cli_health_probe_runs_without_a_provider_call(db):
     assert result.returncode == 1
     assert "never_collected" in result.stdout
     assert "Traceback" not in result.stderr
+
+
+def test_collector_persists_claimed_session_instead_of_local_calendar_date(monkeypatch):
+    captured = {}
+
+    class CaptureWorkflow:
+        def __init__(self, **kwargs):
+            pass
+
+        def run(self, **kwargs):
+            captured.update(kwargs)
+            return {"success": True}
+
+    monkeypatch.setattr(worker, "StockTrackerWorkflow", CaptureWorkflow)
+    monkeypatch.delenv("MARKET_REFRESH_TARGET_SESSION", raising=False)
+    monkeypatch.setattr(store, "utc_now", lambda: datetime(2026, 7, 11, 1, tzinfo=timezone.utc))
+    assert worker._collect(SETTINGS) == 0
+    assert captured["trade_date"] == date(2026, 7, 10)
+    assert captured["evaluate_alerts"] is False
+
+
+def test_collector_child_uses_parent_session_even_after_local_date_rolls(monkeypatch):
+    captured = {}
+
+    class CaptureWorkflow:
+        def __init__(self, **kwargs):
+            pass
+
+        def run(self, **kwargs):
+            captured.update(kwargs)
+            return {"success": True}
+
+    monkeypatch.setattr(worker, "StockTrackerWorkflow", CaptureWorkflow)
+    monkeypatch.setenv("MARKET_REFRESH_TARGET_SESSION", "2026-07-10")
+    monkeypatch.setattr(store, "utc_now", lambda: datetime(2026, 7, 13, 16, tzinfo=timezone.utc))
+    assert worker._collect(SETTINGS) == 0
+    assert captured["trade_date"] == date(2026, 7, 10)
+
+
+def test_parent_passes_claimed_session_to_collector_child(monkeypatch):
+    seen = {}
+
+    class Child:
+        def wait(self, timeout=None):
+            return 0
+
+        def poll(self):
+            return 0
+
+        def kill(self):
+            raise AssertionError("successful collector must not be killed")
+
+    def fake_popen(command, **kwargs):
+        seen["command"] = command
+        seen["env"] = kwargs["env"]
+        return Child()
+
+    monkeypatch.setattr(worker.subprocess, "Popen", fake_popen)
+    assert worker._run_collector(SETTINGS, "2026-07-10") is None
+    assert seen["env"]["MARKET_REFRESH_TARGET_SESSION"] == "2026-07-10"

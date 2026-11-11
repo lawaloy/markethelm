@@ -2,6 +2,7 @@
 
 import shutil
 import tempfile
+from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -91,6 +92,44 @@ class TestStockTrackerWorkflow:
         assert "projections" in result
         assert "ai_summary" in result
         assert result["ai_summary"] is not None
+
+    @patch.dict("os.environ", {"OPENAI_API_KEY": ""}, clear=False)
+    @patch("src.workflows.tracker.get_indices_to_track", return_value=["S&P 500"])
+    @patch("src.workflows.tracker.StockDataFetcher")
+    @patch("src.workflows.tracker.DataStorage")
+    @patch("src.workflows.tracker.AlertEngine")
+    def test_workflow_run_persists_explicit_trade_date(
+        self,
+        mock_alert,
+        mock_storage_cls,
+        mock_fetcher_cls,
+        mock_indices,
+        sample_stock_data,
+    ):
+        mock_fetcher = MagicMock()
+        mock_fetcher.fetch_all_indices.return_value = {"S&P 500": sample_stock_data}
+        mock_fetcher_cls.return_value = mock_fetcher
+        mock_storage = MagicMock()
+        mock_storage.save_daily_data.return_value = "market_bars:2026-07-10"
+        mock_storage.save_summary.return_value = "summary:2026-07-10"
+        mock_storage.save_projections.return_value = "projections:2026-07-10"
+        mock_storage_cls.return_value = mock_storage
+        mock_alert.from_config.return_value = None
+
+        workflow = StockTrackerWorkflow(include_profile=False)
+        workflow.fetcher = mock_fetcher
+        workflow.storage = mock_storage
+        workflow.alert_engine = None
+        workflow.ai_summarizer.enabled = False
+
+        session = date(2026, 7, 10)
+        result = workflow.run(use_screener=False, evaluate_alerts=False, trade_date=session)
+
+        assert result["success"] is True
+        assert result["metadata"]["date"] == session
+        assert mock_storage.save_daily_data.call_args.kwargs["date"] == session
+        assert mock_storage.save_summary.call_args.kwargs["date"] == session
+        assert mock_storage.save_projections.call_args.kwargs["date"] == session
 
     @patch("src.workflows.tracker.get_indices_to_track", return_value=["S&P 500"])
     @patch("src.workflows.tracker.StockDataFetcher")
