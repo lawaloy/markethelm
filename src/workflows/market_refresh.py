@@ -10,7 +10,7 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Sequence
 
 import src.storage.market_refresh as refresh_store
@@ -22,6 +22,14 @@ from src.workflows.tracker import StockTrackerWorkflow
 logger = get_logger(__name__)
 
 
+def _session_trade_date(settings: MarketRefreshSettings) -> date:
+    raw = (os.environ.get("MARKET_REFRESH_TARGET_SESSION") or "").strip()
+    try:
+        return date.fromisoformat(raw)
+    except ValueError:
+        return date.fromisoformat(refresh_store.expected_session(refresh_store.utc_now(), settings))
+
+
 def _collect(settings: MarketRefreshSettings) -> int:
     # An orphaned child must exit before the database lease expires, even if its
     # parent/container supervisor disappears. No provider errors go to public probes.
@@ -30,14 +38,17 @@ def _collect(settings: MarketRefreshSettings) -> int:
     watchdog.start()
     try:
         result = StockTrackerWorkflow(load_alerts=False).run(
-            use_screener=True, top_n_stocks=settings.top_n, evaluate_alerts=False
+            use_screener=True,
+            top_n_stocks=settings.top_n,
+            evaluate_alerts=False,
+            trade_date=_session_trade_date(settings),
         )
         return 0 if result.get("success") else 1
     finally:
         watchdog.cancel()
 
 
-def _run_collector(settings: MarketRefreshSettings) -> str | None:
+def _run_collector(settings: MarketRefreshSettings, session: str) -> str | None:
     env = os.environ.copy()
     env.update(
         {
@@ -45,6 +56,7 @@ def _run_collector(settings: MarketRefreshSettings) -> str | None:
             for name in settings.__dataclass_fields__
         }
     )
+    env["MARKET_REFRESH_TARGET_SESSION"] = session
     child = subprocess.Popen(
         [sys.executable, "-m", "src.workflows.market_refresh", "--collect"],
         stdout=subprocess.DEVNULL,
@@ -79,7 +91,7 @@ def run_once(
     error = "interrupted"
     count = 0
     try:
-        collection_error = _run_collector(settings)
+        collection_error = _run_collector(settings, session)
         if collection_error is None:
             count = refresh_store.verified_quote_count(
                 session, now.isoformat(), refresh_store.utc_now()

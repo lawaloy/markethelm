@@ -7,7 +7,7 @@ Reusable across CLI, web, and API.
 
 import json
 import math
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -77,6 +77,7 @@ class StockTrackerWorkflow:
         top_n_stocks: Optional[int] = None,
         *,
         evaluate_alerts: bool = True,
+        trade_date: Optional[date] = None,
     ) -> Dict[str, Any]:
         """
         Execute the complete stock tracking workflow.
@@ -85,6 +86,8 @@ class StockTrackerWorkflow:
             evaluate_alerts: Evaluate local rules; hosted collectors leave delivery to the worker.
             use_screener: Whether to use stock screener for filtering
             top_n_stocks: If specified, limit to top N stocks by volume (for day trading)
+            trade_date: Snapshot key for bars/projections/summary. Hosted collectors
+                pass the XNYS session so a Saturday UTC retry still lands on Friday.
 
         Returns:
             Dictionary containing:
@@ -117,7 +120,7 @@ class StockTrackerWorkflow:
 
             # Step 2: Save data
             logger.info("Step 2: Saving data")
-            save_result = self._save_data(all_data)
+            save_result = self._save_data(all_data, trade_date=trade_date)
 
             # Step 3: Analyze data
             logger.info("Step 3: Analyzing data")
@@ -144,6 +147,7 @@ class StockTrackerWorkflow:
                 ai_summary,
                 projection_result["projections"],
                 projection_result["projection_summary"],
+                trade_date=trade_date,
             )
 
             # Step 7: Evaluate alerts (if configured)
@@ -165,7 +169,7 @@ class StockTrackerWorkflow:
                     "summary": summary_result.get("file_path"),
                 },
                 "metadata": {
-                    "date": datetime.now().date(),
+                    "date": trade_date or datetime.now().date(),
                     "total_stocks": len(all_data),
                     "screener_enabled": use_screener,
                     "ai_enabled": self.ai_summarizer.enabled,
@@ -290,10 +294,10 @@ class StockTrackerWorkflow:
                 additional.append(fetched)
         return additional
 
-    def _save_data(self, data: List[Dict]) -> Dict[str, Any]:
+    def _save_data(self, data: List[Dict], trade_date: Optional[date] = None) -> Dict[str, Any]:
         """Persist stock data to durable market_bars storage."""
         try:
-            file_path = self.storage.save_daily_data(data)
+            file_path = self.storage.save_daily_data(data, date=trade_date)
             if file_path:
                 logger.info(f"Data saved to: {file_path}")
                 return {"success": True, "file_path": file_path}
@@ -379,6 +383,7 @@ class StockTrackerWorkflow:
         ai_summary: Optional[str],
         projections: Dict = None,
         projection_summary: Dict = None,
+        trade_date: Optional[date] = None,
     ) -> Dict[str, Any]:
         """Persist analysis summary and projections to durable DB storage."""
         try:
@@ -392,11 +397,11 @@ class StockTrackerWorkflow:
             if projection_summary:
                 summary_data["projection_summary"] = projection_summary
 
-            summary_path = self.storage.save_summary(summary_data)
+            summary_path = self.storage.save_summary(summary_data, date=trade_date)
 
             projection_location = None
             if projections:
-                projection_location = self.storage.save_projections(projections)
+                projection_location = self.storage.save_projections(projections, date=trade_date)
                 if projection_location:
                     logger.info(f"Projections saved to: {projection_location}")
 

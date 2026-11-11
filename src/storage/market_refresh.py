@@ -119,15 +119,17 @@ def verified_quote_count(session: str, since: str, now: datetime) -> int:
     """Require fresh provider timestamps AND newly persisted projections/summary.
 
     A successful process exit or a file bearing today's date is insufficient.
-    Quote timestamps identify the market session; storage dates may be weekends.
+    Quote timestamps identify the market session; bars must also be stored under
+    that session date so dashboard weekday lookups can find them.
     """
     with get_connection() as conn:
         rows = conn.execute(
             """SELECT b.symbol, b.close, b.quote_timestamp FROM market_bars b
                JOIN projections p ON p.run_date = b.trade_date AND p.symbol = b.symbol
                JOIN daily_summaries s ON s.summary_date = b.trade_date
-               WHERE b.written_at >= ? AND p.written_at >= ? AND s.written_at >= ?""",
-            (since, since, since),
+               WHERE b.trade_date = ? AND b.written_at >= ?
+                 AND p.written_at >= ? AND s.written_at >= ?""",
+            (session, since, since, since),
         ).fetchall()
     calendar = get_market_calendar()
     zone = calendar.tz

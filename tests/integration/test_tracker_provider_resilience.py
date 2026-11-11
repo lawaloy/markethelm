@@ -233,7 +233,9 @@ def test_scheduled_collection_populates_hosted_db_and_survives_restart(monkeypat
         monkeypatch.setattr(
             refresh_worker,
             "_run_collector",
-            lambda config: None if refresh_worker._collect(config) == 0 else "collector_failed",
+            lambda config, _session=None: (
+                None if refresh_worker._collect(config) == 0 else "collector_failed"
+            ),
         )
         assert refresh_store.market_data_health(now, settings)["ok"] is False
         with patch.object(workflow, "_run_alerts") as local_delivery:
@@ -269,7 +271,9 @@ def test_scheduled_total_provider_failure_is_persisted_and_not_retried_immediate
         monkeypatch.setattr(
             refresh_worker,
             "_run_collector",
-            lambda config: None if refresh_worker._collect(config) == 0 else "collector_failed",
+            lambda config, _session=None: (
+                None if refresh_worker._collect(config) == 0 else "collector_failed"
+            ),
         )
         assert refresh_worker.run_once(settings)["status"] == "error"
         assert refresh_store.load_state()["error_code"] == "collector_failed"
