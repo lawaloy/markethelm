@@ -54,6 +54,10 @@ def test_uploaded_artifacts_have_explicit_retention() -> None:
                 ):
                     continue
                 retention = step.get("with", {}).get("retention-days")
-                if not isinstance(retention, int) or not 1 <= retention <= 90:
+                if (
+                    isinstance(retention, bool)
+                    or not isinstance(retention, int)
+                    or not 1 <= retention <= 90
+                ):
                     offenders.append(f"{path.name}:{job_name}:{step.get('name', 'upload')}")
     assert offenders == [], f"missing or invalid artifact retention: {offenders}"
