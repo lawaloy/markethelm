@@ -47,4 +47,4 @@ jobs:
           name: dependency-audit-npm-logs
           path: ~/.npm/_logs/*-debug-0.log
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1
