@@ -100,7 +100,7 @@ jobs:
           name: playwright-report
           path: e2e/playwright-report/
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 3
 
       - name: Upload screenshots & test output
         if: always()
@@ -109,7 +109,7 @@ jobs:
           name: e2e-test-results
           path: e2e/test-results/
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 3
 
       - name: Build sticky PR comment (artifacts)
         if: always() && github.event.pull_request.head.repo.full_name == github.repository
@@ -126,6 +126,7 @@ jobs:
             echo "| Playwright | ${{ steps.playwright.outcome }} |"
             echo ""
             echo "**Screenshots & HTML report:** Unzip artifacts **e2e-test-results** or **playwright-report** from [this workflow run](${RUN_URL})."
+            echo "_These artifacts expire 3 days after the run._"
             echo ""
             echo "_PNGs:_ workflow run → Artifacts → **e2e-test-results** (unzip the archive)."
             echo "_Playwright HTML report:_ workflow run → Artifacts → **playwright-report**."
