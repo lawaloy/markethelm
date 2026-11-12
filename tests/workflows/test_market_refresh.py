@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 import src.storage.market_refresh as store
 import src.workflows.market_refresh as worker
 from dashboard.backend.main import app
-from src.core.market_refresh import MarketRefreshSettings
+from src.core.market_refresh import MarketRefreshSettings, market_refresh_enabled
 from src.storage.database import init_database
 
 NOW = datetime(2026, 7, 6, 21, tzinfo=timezone.utc)
@@ -157,6 +157,44 @@ def test_invalid_configuration_is_rejected(key, value, monkeypatch):
         MarketRefreshSettings.from_env()
 
 
+def test_min_symbols_cannot_exceed_top_n(monkeypatch):
+    monkeypatch.setenv("MARKET_REFRESH_TOP_N", "5")
+    monkeypatch.setenv("MARKET_REFRESH_MIN_SYMBOLS", "10")
+    with pytest.raises(ValueError, match="MIN_SYMBOLS"):
+        MarketRefreshSettings.from_env()
+
+
+@pytest.mark.parametrize("value", ["1", "TRUE", "Yes", "on"])
+def test_refresh_flag_accepts_common_truthy_values(value, monkeypatch):
+    monkeypatch.setenv("MARKETHELM_MARKET_REFRESH_ENABLED", value)
+    assert market_refresh_enabled() is True
+
+
+@pytest.mark.parametrize("value", ["", "0", "false", "off", "no", "enabled"])
+def test_refresh_flag_does_not_treat_other_strings_as_enabled(value, monkeypatch):
+    monkeypatch.setenv("MARKETHELM_MARKET_REFRESH_ENABLED", value)
+    assert market_refresh_enabled() is False
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["--check", "--loop"],
+        ["--check", "--collect"],
+        ["--loop", "--retry-failed"],
+        ["--check", "--retry-failed"],
+    ],
+)
+def test_cli_rejects_combined_collector_modes(argv):
+    with pytest.raises(SystemExit):
+        worker.main(argv)
+
+
+def test_run_once_rejects_naive_timestamp():
+    with pytest.raises(ValueError, match="timezone"):
+        worker.run_once(SETTINGS, now=datetime(2026, 7, 6, 21))
+
+
 def test_cli_probe_reports_freshness_and_redacts_unavailable_database(db, monkeypatch, capsys):
     assert worker.main(["--check"]) == 1
     assert "never_collected" in capsys.readouterr().out
@@ -217,6 +255,24 @@ def test_collector_child_uses_parent_session_even_after_local_date_rolls(monkeyp
     monkeypatch.setattr(worker, "StockTrackerWorkflow", CaptureWorkflow)
     monkeypatch.setenv("MARKET_REFRESH_TARGET_SESSION", "2026-07-10")
     monkeypatch.setattr(store, "utc_now", lambda: datetime(2026, 7, 13, 16, tzinfo=timezone.utc))
+    assert worker._collect(SETTINGS) == 0
+    assert captured["trade_date"] == date(2026, 7, 10)
+
+
+def test_invalid_target_session_falls_back_to_expected_session(monkeypatch):
+    captured = {}
+
+    class CaptureWorkflow:
+        def __init__(self, **kwargs):
+            pass
+
+        def run(self, **kwargs):
+            captured.update(kwargs)
+            return {"success": True}
+
+    monkeypatch.setattr(worker, "StockTrackerWorkflow", CaptureWorkflow)
+    monkeypatch.setenv("MARKET_REFRESH_TARGET_SESSION", "not-a-date")
+    monkeypatch.setattr(store, "utc_now", lambda: datetime(2026, 7, 11, 1, tzinfo=timezone.utc))
     assert worker._collect(SETTINGS) == 0
     assert captured["trade_date"] == date(2026, 7, 10)
 
