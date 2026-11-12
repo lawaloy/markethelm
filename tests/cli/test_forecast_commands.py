@@ -5,6 +5,8 @@ import os
 import subprocess
 import sys
 
+import pytest
+
 from src.cli.forecast_commands import main
 
 
@@ -30,6 +32,32 @@ def test_packaged_cli_reports_empty_ledger_without_fetching_or_backfilling(tmp_p
     )
     assert result.returncode == 0, result.stderr
     assert json.loads(output.read_text(encoding="utf-8"))["status"] == "not_started"
+
+
+def test_packaged_cli_scores_empty_ledger_without_fetching(tmp_path):
+    env = {**os.environ, "MARKETHELM_DATABASE_URL": "", "FINNHUB_API_KEY": "", "OPENAI_API_KEY": ""}
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "src.cli.commands",
+            "forecasts",
+            "score",
+            "--data-dir",
+            str(tmp_path),
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {"newScores": 0}
+
+
+def test_cli_rejects_out_of_range_lookback(tmp_path):
+    with pytest.raises(SystemExit):
+        main(["report", "--data-dir", str(tmp_path), "--days", "0"])
 
 
 def test_cli_redacts_database_failures(tmp_path, monkeypatch, caplog):

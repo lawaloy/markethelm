@@ -69,6 +69,14 @@ def test_small_training_data_is_rejected_without_changing_split_or_regularizatio
         _fit(_samples()[-180:])
 
 
+def test_naive_or_early_freeze_cannot_enter_training_labels():
+    rows = _samples()
+    with pytest.raises(ValueError, match="Freeze timestamp"):
+        train_candidate(rows, frozen_at=datetime(2026, 1, 1, tzinfo=timezone.utc), source={})
+    with pytest.raises(ValueError, match="Freeze timestamp"):
+        train_candidate(rows, frozen_at=datetime(2026, 11, 3), source={})
+
+
 def test_frozen_candidate_has_no_outcome_inputs_or_unestimated_confidence():
     artifact, _ = _fit()
     candidate = ReturnCandidate(canonical_json(artifact))

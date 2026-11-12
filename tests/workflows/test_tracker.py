@@ -153,6 +153,73 @@ class TestStockTrackerWorkflow:
         assert result["success"] is False
         assert "error" in result
 
+    @patch("src.workflows.tracker.get_indices_to_track", return_value=["S&P 500"])
+    @patch("src.workflows.tracker.StockDataFetcher")
+    @patch("src.workflows.tracker.DataStorage")
+    @patch("src.workflows.tracker.AlertEngine")
+    def test_fetch_failure_still_records_due_forecast_outcomes(
+        self, mock_alert, mock_storage_cls, mock_fetcher_cls, mock_indices
+    ):
+        """A failed screen must still observe previously recorded forecast symbols."""
+
+        mock_fetcher = MagicMock()
+        mock_fetcher.fetch_all_indices.side_effect = Exception("API rate limit exceeded")
+        mock_fetcher.fetch_symbol_data.return_value = {
+            "symbol": "MSFT",
+            "close": 400.0,
+            "outcome_final": True,
+        }
+        mock_fetcher_cls.return_value = mock_fetcher
+        mock_storage = MagicMock()
+        mock_storage.forecast_outcomes_due.return_value = ["MSFT"]
+        mock_storage_cls.return_value = mock_storage
+        mock_alert.from_config.return_value = None
+
+        workflow = StockTrackerWorkflow(include_profile=False)
+        workflow.fetcher = mock_fetcher
+        workflow.storage = mock_storage
+        workflow.alert_engine = None
+
+        result = workflow.run(use_screener=False)
+
+        assert result["success"] is False
+        mock_fetcher.fetch_symbol_data.assert_called_once_with("MSFT", include_profile=False)
+        mock_storage.record_forecast_run.assert_called_once_with(
+            [{"symbol": "MSFT", "close": 400.0, "outcome_final": True}], {}
+        )
+
+    def test_forecast_outcomes_fetch_only_due_symbols_missing_from_screen(self):
+        workflow = StockTrackerWorkflow.__new__(StockTrackerWorkflow)
+        workflow.storage = MagicMock()
+        workflow.storage.forecast_outcomes_due.return_value = ["AAPL", "MSFT", "TSLA"]
+        workflow.fetcher = MagicMock()
+        workflow.fetcher.fetch_symbol_data.side_effect = lambda symbol, **kwargs: {
+            "symbol": symbol,
+            "include_profile": kwargs.get("include_profile"),
+        }
+
+        extra = workflow._fetch_forecast_outcomes(
+            [{"symbol": " aapl "}, "not-a-row", {"symbol": "GOOG"}]
+        )
+
+        assert {row["symbol"] for row in extra} == {"MSFT", "TSLA"}
+        called = {call.args[0] for call in workflow.fetcher.fetch_symbol_data.call_args_list}
+        assert called == {"MSFT", "TSLA"}
+        assert all(
+            call.kwargs.get("include_profile") is False
+            for call in workflow.fetcher.fetch_symbol_data.call_args_list
+        )
+
+    def test_forecast_outcomes_ignore_non_list_due_payload(self):
+        workflow = StockTrackerWorkflow.__new__(StockTrackerWorkflow)
+        workflow.storage = MagicMock()
+        workflow.storage.forecast_outcomes_due.return_value = {"AAPL"}
+        workflow.fetcher = MagicMock()
+
+        assert workflow._fetch_forecast_outcomes([]) == []
+        workflow.fetcher.fetch_symbol_data.assert_not_called()
+        workflow.storage.record_forecast_run.assert_not_called()
+
     @patch.dict("os.environ", {"OPENAI_API_KEY": ""}, clear=False)
     @patch("src.workflows.tracker.get_indices_to_track", return_value=["S&P 500"])
     @patch("src.workflows.tracker.StockDataFetcher")

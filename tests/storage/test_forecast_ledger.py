@@ -250,3 +250,47 @@ def test_changed_scoring_implementation_cannot_mix_into_a_frozen_protocol(ledger
     with pytest.raises(ForecastConflict, match="Frozen definition changed"):
         record_forecast_run({}, [outcome()], data_dir=ledger, now=LATER)
     assert ledger_snapshot(data_dir=ledger)["forecast_scores"] == []
+
+
+def test_direction_only_models_score_direction_and_omit_price_error(ledger):
+    record(ledger)
+    record_forecast_run({}, [outcome()], data_dir=ledger, now=LATER)
+    snapshot = ledger_snapshot(data_dir=ledger)
+    predictions = {row["id"]: row for row in snapshot["forecast_predictions"]}
+    scores = {
+        predictions[row["prediction_id"]]["model_version"]: row
+        for row in snapshot["forecast_scores"]
+    }
+    up = scores["always-up-v1"]
+    down = scores["always-down-v1"]
+    unchanged = scores["unchanged-price-v1"]
+    assert up["abs_error_pct"] is None and up["band_hit"] is None and up["brier_score"] is None
+    assert up["direction_correct"] == 1
+    assert down["direction_correct"] == 0 and down["abs_error_pct"] is None
+    assert unchanged["direction_correct"] == 0
+    assert unchanged["abs_error_pct"] == pytest.approx(4 / 104 * 100)
+
+
+def test_invalid_range_or_confidence_rolls_back_the_bundle(ledger):
+    def inverted_range(projection, snapshot):
+        return {"target_mid": 102, "target_low": 110, "target_high": 90}
+
+    def bad_confidence(projection, snapshot):
+        return {"target_mid": 102, "confidence": 150}
+
+    for predict in (inverted_range, bad_confidence):
+        model = ForecastModel("invalid-payload-v1", "point", {"test": predict.__name__}, predict)
+        with pytest.raises(ForecastConflict, match="invalid prediction"):
+            record(ledger, models=(*builtin_models(), model))
+        assert ledger_snapshot(data_dir=ledger)["forecast_cases"] == []
+        assert ledger_snapshot(data_dir=ledger)["forecast_models"] == []
+
+
+def test_duplicate_or_incomplete_model_sets_are_rejected_before_write(ledger):
+    models = builtin_models()
+    with pytest.raises(ValueError, match="unique"):
+        record(ledger, models=(*models, models[0]))
+    with pytest.raises(ValueError, match="Incumbent"):
+        record(ledger, models=(models[2], models[3]))
+    assert ledger_snapshot(data_dir=ledger)["forecast_cases"] == []
+    assert ledger_snapshot(data_dir=ledger)["forecast_models"] == []
