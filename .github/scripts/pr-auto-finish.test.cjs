@@ -12,7 +12,7 @@ const trustedPostReleasePr = {
     sha: 'head-sha',
     repo: { full_name: 'lawaloy/markethelm' },
   },
-  base: { ref: 'main' },
+  base: { ref: 'main', sha: 'base-sha' },
   labels: [],
 };
 
@@ -96,6 +96,7 @@ const runPostReleaseFinish = async ({ comments, reviews, threads }) => {
     rest: {
       checks: { listForRef },
       issues: { listComments },
+      repos: { compareCommits: async () => ({ data: { ahead_by: 0 } }) },
       pulls: {
         get: async () => ({ data: trustedPostReleasePr }),
         listReviews,
@@ -176,4 +177,140 @@ test('post-release lane merges when only informational feedback remains', async 
 
   assert.equal(failure, '');
   assert.equal(mergeCalled, true);
+});
+
+const runDependabotFinish = async ({ comparisons, mergeError, updateError }) => {
+  const originalLane = process.env.LANE;
+  const originalPullNumber = process.env.PULL_NUMBER;
+  process.env.LANE = 'dependabot';
+  process.env.PULL_NUMBER = '785';
+
+  const pr = {
+    state: 'open',
+    mergeable_state: 'clean',
+    user: { login: 'dependabot[bot]' },
+    head: { ref: 'dependabot/pip/fastapi', sha: 'head-sha' },
+    base: { ref: 'main', sha: 'base-sha' },
+    labels: [],
+  };
+  const calls = { merge: 0, update: [], comments: [], labels: [], comparisons: [] };
+  const listForRef = () => {};
+  const listComments = () => {};
+  let failure = '';
+  const github = {
+    rest: {
+      checks: { listForRef },
+      issues: {
+        listComments,
+        createComment: async ({ body }) => calls.comments.push(body),
+        addLabels: async ({ labels }) => calls.labels.push(...labels),
+      },
+      repos: {
+        compareCommits: async ({ base, head }) => {
+          calls.comparisons.push({ base, head });
+          return { data: { ahead_by: comparisons[calls.comparisons.length - 1] } };
+        },
+      },
+      pulls: {
+        get: async () => ({ data: pr }),
+        merge: async () => {
+          calls.merge += 1;
+          if (mergeError) throw mergeError;
+        },
+        updateBranch: async (args) => {
+          calls.update.push(args);
+          if (updateError) throw updateError;
+        },
+      },
+    },
+    paginate: async (route) => {
+      if (route === listForRef || route === listComments) return [];
+      throw new Error('Unexpected pagination route');
+    },
+  };
+
+  try {
+    await finish({
+      github,
+      context: { payload: {}, repo: { owner: 'lawaloy', repo: 'markethelm' } },
+      core: { info: () => {}, setFailed: (message) => (failure = message) },
+    });
+  } finally {
+    if (originalLane === undefined) delete process.env.LANE;
+    else process.env.LANE = originalLane;
+    if (originalPullNumber === undefined) delete process.env.PULL_NUMBER;
+    else process.env.PULL_NUMBER = originalPullNumber;
+  }
+  return { calls, failure };
+};
+
+test('updates a branch when main advanced despite a clean mergeable state', async () => {
+  const { calls, failure } = await runDependabotFinish({ comparisons: [1] });
+
+  assert.equal(failure, '');
+  assert.equal(calls.merge, 0);
+  assert.deepEqual(calls.comparisons, [{ base: 'head-sha', head: 'base-sha' }]);
+  assert.equal(calls.update.length, 1);
+  assert.equal(calls.update[0].expected_head_sha, 'head-sha');
+});
+
+test('recovers when main advances after the final comparison', async () => {
+  const mergeError = {
+    status: 405,
+    response: {
+      data: {
+        message: 'Repository rule violations found\n6 of 6 required status checks are expected.',
+      },
+    },
+  };
+  const { calls, failure } = await runDependabotFinish({
+    comparisons: [0, 1],
+    mergeError,
+  });
+
+  assert.equal(failure, '');
+  assert.equal(calls.merge, 1);
+  assert.equal(calls.comparisons.length, 2);
+  assert.equal(calls.update.length, 1);
+  assert.deepEqual(calls.labels, []);
+});
+
+test('blocks auto-merge when updating the branch would conflict', async () => {
+  const { calls, failure } = await runDependabotFinish({
+    comparisons: [1],
+    updateError: {
+      status: 422,
+      response: { data: { message: 'Update branch cannot be performed due to conflicts' } },
+    },
+  });
+
+  assert.equal(failure, '');
+  assert.equal(calls.merge, 0);
+  assert.deepEqual(calls.labels, ['automerge-blocked']);
+  assert.equal(calls.comments.length, 1);
+  assert.match(calls.comments[0], /merge conflict/);
+});
+
+test('does not permanently block a PR for an unrelated branch-update error', async () => {
+  const updateError = Object.assign(new Error('Resource not accessible by integration'), {
+    status: 403,
+  });
+  await assert.rejects(
+    runDependabotFinish({
+      comparisons: [1],
+      updateError,
+    }),
+    /Resource not accessible by integration/,
+  );
+});
+
+test('does not treat an unrelated merge rejection as a stale-check race', async () => {
+  const mergeError = Object.assign(new Error('Required review is missing'), { status: 405 });
+  await assert.rejects(
+    runDependabotFinish({
+      comparisons: [0],
+      mergeError,
+    }),
+    /Required review is missing/,
+  );
 });

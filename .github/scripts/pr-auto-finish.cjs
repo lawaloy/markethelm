@@ -156,6 +156,52 @@ module.exports = async ({ github, context, core }) => {
     return false;
   };
 
+  const isBehindBase = async (pr) => {
+    const { data: comparison } = await github.rest.repos.compareCommits({
+      owner,
+      repo,
+      base: pr.head.sha,
+      head: pr.base.sha,
+    });
+    return comparison.ahead_by > 0;
+  };
+
+  const updateBehindBranch = async (pr) => {
+    try {
+      await github.rest.pulls.updateBranch({
+        owner,
+        repo,
+        pull_number,
+        expected_head_sha: pr.head.sha,
+      });
+      core.info(
+        `Queued branch update for PR #${pull_number}; new checks must complete before merge.`,
+      );
+    } catch (error) {
+      const latest = (await github.rest.pulls.get({ owner, repo, pull_number })).data;
+      if (latest.merged || latest.state !== 'open' || latest.head.sha !== pr.head.sha) {
+        core.info(`PR #${pull_number} changed while updating its branch; waiting for a fresh run.`);
+        return;
+      }
+      const message = error.response?.data?.message || error.message || '';
+      if (error.status === 422 && /conflict/i.test(message)) {
+        const body =
+          'Auto-merge skipped because updating this PR branch from `main` would create a merge conflict. Resolve the conflict and rerun checks before merging.';
+        await ensureComment(body);
+        await addBlockedLabel(latest.labels.map((label) => label.name));
+        core.info(`Branch update has a merge conflict for PR #${pull_number}: ${message}`);
+        return;
+      }
+      throw error;
+    }
+  };
+
+  const requiredChecksExpected = (error) =>
+    error.status === 405 &&
+    /required status checks are expected/i.test(
+      error.response?.data?.message || error.message || '',
+    );
+
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const pullRequest = (
       await github.rest.pulls.get({
@@ -229,6 +275,13 @@ module.exports = async ({ github, context, core }) => {
         return;
       }
 
+      // A completed check on the PR head can become stale when main advances.
+      // mergeable_state may still say "clean" while GitHub recomputes its test merge.
+      if (await isBehindBase(mergeCandidate)) {
+        await updateBehindBranch(mergeCandidate);
+        return;
+      }
+
       if (lane === 'post-release') {
         const blockers = await inspectFeedback({
           github,
@@ -245,33 +298,52 @@ module.exports = async ({ github, context, core }) => {
         }
       }
 
-      await github.rest.pulls.merge({
-        owner,
-        repo,
-        pull_number,
-        merge_method: 'squash',
-        sha: mergeCandidate.head.sha,
-      });
+      try {
+        await github.rest.pulls.merge({
+          owner,
+          repo,
+          pull_number,
+          merge_method: 'squash',
+          sha: mergeCandidate.head.sha,
+        });
+      } catch (error) {
+        if (!requiredChecksExpected(error)) throw error;
+
+        // main may have advanced after the comparison but before the merge API call.
+        const latest = (await github.rest.pulls.get({ owner, repo, pull_number })).data;
+        if (latest.merged || latest.state !== 'open') {
+          core.info(`PR #${pull_number} was completed by another run.`);
+          return;
+        }
+        if (latest.head.sha !== mergeCandidate.head.sha) {
+          core.info(`PR #${pull_number} head changed before merge; waiting for new checks.`);
+          return;
+        }
+        if (latest.labels.some((label) => label.name === 'automerge-blocked')) {
+          core.info('Skipping recovery because automerge-blocked was added before merge.');
+          return;
+        }
+        if (await isBehindBase(latest)) {
+          await updateBehindBranch(latest);
+          return;
+        }
+        if (attempt === maxAttempts) {
+          core.setFailed(
+            'Required checks are still expected on the current PR head. ' +
+              'Retry this trusted PR with the workflow_dispatch recovery path.',
+          );
+          return;
+        }
+        core.info('GitHub still expects required checks; waiting for check registration.');
+        await sleep(delayMs);
+        continue;
+      }
       core.info(`Merged PR #${pull_number}.`);
       return;
     }
 
     if (pullRequest.mergeable_state === 'behind') {
-      try {
-        await github.rest.pulls.updateBranch({
-          owner,
-          repo,
-          pull_number,
-          expected_head_sha: pullRequest.head.sha,
-        });
-        core.info(`Queued branch update for PR #${pull_number}.`);
-      } catch (error) {
-        const body =
-          'Auto-merge skipped because updating this PR branch from `main` would create a merge conflict or could not be applied cleanly.';
-        await ensureComment(body);
-        await addBlockedLabel(labels);
-        core.info(`Branch update failed for PR #${pull_number}: ${error.message}`);
-      }
+      await updateBehindBranch(pullRequest);
       return;
     }
 
