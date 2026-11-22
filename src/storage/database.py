@@ -269,6 +269,45 @@ _MIGRATIONS = (
         name="immutable_forward_forecasts",
         statements=forecast_schema_statements(),
     ),
+    Migration(
+        version=10,
+        name="paper_trading_accounts_and_decisions",
+        statements=(
+            """CREATE TABLE paper_accounts (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    cash TEXT NOT NULL DEFAULT '0',
+    reserved_cash TEXT NOT NULL DEFAULT '0',
+    gross_exposure TEXT NOT NULL DEFAULT '0',
+    realized_loss_today TEXT NOT NULL DEFAULT '0',
+    portfolio_verified_at TEXT,
+    trading_enabled INTEGER NOT NULL DEFAULT 0,
+    kill_switch INTEGER NOT NULL DEFAULT 1,
+    max_order_notional TEXT NOT NULL DEFAULT '100',
+    max_position_notional TEXT NOT NULL DEFAULT '500',
+    max_total_exposure TEXT NOT NULL DEFAULT '1000',
+    max_daily_loss TEXT NOT NULL DEFAULT '100',
+    max_data_age_seconds INTEGER NOT NULL DEFAULT 30
+)""",
+            """CREATE TABLE paper_positions (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    symbol TEXT NOT NULL,
+    quantity TEXT NOT NULL,
+    PRIMARY KEY (user_id, symbol)
+)""",
+            """CREATE TABLE paper_risk_decisions (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    proposal_id TEXT NOT NULL,
+    input_json TEXT NOT NULL,
+    approved INTEGER NOT NULL,
+    reasons_json TEXT NOT NULL,
+    notional TEXT,
+    evaluated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, proposal_id)
+)""",
+            """CREATE INDEX idx_paper_risk_decisions_user_time
+    ON paper_risk_decisions(user_id, evaluated_at DESC)""",
+        ),
+    ),
 )
 
 LATEST_SCHEMA_VERSION = _MIGRATIONS[-1].version

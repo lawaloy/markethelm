@@ -15,6 +15,7 @@ markethelm/
 |   |-- services/                   # Finnhub client, index/screening/data fetch
 |   |-- analysis/                   # Market analysis, projections, summaries
 |   |-- storage/                    # Files, SQLite/PostgreSQL, sessions, migrations
+|   |-- trading/                    # Proposed-trade risk decisions; no execution
 |   |-- workflows/                  # Reusable tracker orchestration
 |   |-- alerts/                     # Rules, workers, channels, delivery status
 |   `-- cli/                        # `markethelm` command presentation
@@ -65,6 +66,8 @@ accounts and tenant-owned alert state.
 
 - Bearer sessions protect tenant-specific API routes.
 - Alert configuration, watches, jobs, and delivery history are scoped per user.
+- Paper account state and risk decision history are scoped per user. The history
+  API is read-only and requires an authenticated account.
 - Market data remains a shared platform input, not tenant-owned.
 - The orchestrator creates jobs and workers claim/process them from the database.
 - Versioned migrations run at startup and fail closed on an unknown newer schema.
@@ -171,6 +174,11 @@ are not implemented.
 
 Quotes, projections, and daily summaries are stored durably in `market_bars`, `projections`, and `daily_summaries` (application database when `MARKETHELM_DATABASE_URL` is set, otherwise the `DATA_DIR` sidecar); only optional Markdown reports remain files.
 
+Paper accounts, positions, and risk decision records exist only in the hosted
+application database. They are disabled by default and have no order submission
+path. A later order service must recheck risk and reserve funds atomically;
+a recorded positive risk decision alone cannot authorize an order.
+
 </details>
 
 <a id="external-api-limiting-and-retries"></a>
@@ -198,6 +206,7 @@ FastAPI groups routes by concern:
 - background refresh start/status/cancel;
 - alert configuration, quotes, execution, tests, and delivery status;
 - registration, sessions, verification, recovery, and account controls; and
+- authenticated, read-only paper risk decision history; and
 - liveness, readiness, worker health, and metrics.
 
 File mode preserves the original operator workflow. Hosted mode changes ownership

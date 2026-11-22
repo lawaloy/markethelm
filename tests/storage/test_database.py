@@ -222,7 +222,7 @@ class TestDatabaseMigrations:
             }
 
         assert migration["version"] == LATEST_SCHEMA_VERSION
-        assert migration["name"] == "immutable_forward_forecasts"
+        assert migration["name"] == "paper_trading_accounts_and_decisions"
         assert migration["applied_at"]
         assert {
             "users",
@@ -231,6 +231,9 @@ class TestDatabaseMigrations:
             "market_refresh_state",
             "forecast_cases",
             "forecast_scores",
+            "paper_accounts",
+            "paper_positions",
+            "paper_risk_decisions",
         }.issubset(tables)
 
     def test_existing_unversioned_database_is_upgraded_without_data_loss(

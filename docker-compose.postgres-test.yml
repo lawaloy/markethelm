@@ -22,6 +22,6 @@ services:
       postgres:
         condition: service_healthy
     command: >-
-      sh -c "pip install 'pytest>=7.0.0' 'psycopg[binary]>=3.2.0' 'pandas>=2.0.0'
-      'requests>=2.31.0' 'python-dotenv>=1.0.0'
+      sh -c "pip install -r requirements.txt -r dashboard/backend/requirements.txt
+      'psycopg[binary]>=3.2.0' 'pytest>=7.0.0'
       && pytest tests/integration/test_postgresql_storage.py -v"
