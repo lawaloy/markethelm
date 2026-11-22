@@ -29,7 +29,16 @@ import src.alerts.alert_worker as alert_worker
 import src.storage.database as storage_database
 import src.storage.health as storage_health
 import src.storage.market_refresh as market_refresh_store
-from dashboard.backend.api import alerts, auth, history, market, paper_trading, projections, refresh, stocks
+from dashboard.backend.api import (
+    alerts,
+    auth,
+    history,
+    market,
+    paper_trading,
+    projections,
+    refresh,
+    stocks,
+)
 from dashboard.backend.api.market import get_market_summary
 from dashboard.backend.auth import require_user_id
 from dashboard.backend.observability import ObservabilityMiddleware, prometheus_metrics
