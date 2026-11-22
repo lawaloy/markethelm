@@ -1,6 +1,8 @@
 # Project status and roadmap
 
-**Last updated:** 2026-11-03 (first frozen shadow model)
+**Capability inventory reviewed:** 2026-11-03 (first frozen shadow model)
+
+**Roadmap updated:** 2026-11-22 (autonomous decision and execution milestones)
 
 This is the authoritative inventory of what MarketHelm currently ships, what is
 covered by automated tests, and what remains unfinished. Deployment instructions
@@ -31,8 +33,9 @@ the UI; the platform operates data providers and notification delivery.
    heuristics and optional AI briefs.
 3. **Suggest and validate:** Present reasoned outlooks, recommendations, and
    alerts; measure projections against real outcomes before changing scoring.
-4. **Act:** Eventually support broker execution with risk limits and audit
-   history, after separate execution and operational design.
+4. **Act:** Build an autonomous loop that monitors markets, analyzes signals,
+   proposes decisions, and first executes simulated trades. Broker execution
+   follows only with independent risk limits, reconciliation, and an audit trail.
 5. **Serve many users:** Make accounts, private preferences, and reliable delivery
    available through a hosted product, with local operation supported for
    development and self-hosting.
@@ -49,10 +52,10 @@ The repository supports two operating modes:
 - **Hosted multi-user mode:** shared market data, accounts, sessions, per-user
   alert settings, jobs, and delivery history use SQLite or PostgreSQL.
 
-Automated broker execution is a future direction, not a current capability. Its
-runtime is expected to be intraday or event-driven and separate from the
-once-per-session projection-evidence collector. MarketHelm does not provide
-investment, legal, or tax advice.
+Autonomous decisions and automated broker execution are future directions, not
+current capabilities. Their runtime is expected to run repeatedly during market
+hours or react to events, separate from the once-per-session projection-evidence
+collector. MarketHelm does not provide investment, legal, or tax advice.
 
 </details>
 
@@ -87,7 +90,7 @@ real email delivery, DNS, TLS, backups, and restore procedures require staging.
 | Accounts and tenant isolation | **Shipped and tested**                       | Registration, login/logout, bearer sessions, email verification, password reset/change, account deletion, per-user alert data                                                                     | Account export and stronger administrative/support tooling                                                               |
 | Hosted persistence            | **Shipped; operational verification needed** | SQLite/PostgreSQL adapter, versioned migrations (incl. `market_bars`), durable dashboard/alert reads, legacy snapshot backfill, queue/orchestrator, and automated container backup/restore drills | Run and verify the legacy backfill per environment; managed PostgreSQL snapshot/PITR, pooling/TLS, and failover sign-off |
 | Production controls           | **Shipped; operational verification needed** | Rate limiting, trusted-proxy handling, health/metrics, ingress/tenant acceptance, bounded capacity baseline, retention and incident runbooks                                                      | Connect a real staging ingress/provider/monitor and record external sign-off evidence                                    |
-| Automated trading             | **Not implemented**                          | No broker connection or order execution                                                                                                                                                           | Intraday/event-driven orchestration, broker integration, order/risk model, audit trail, compliance and safety controls   |
+| Autonomous trading            | **Not implemented**                          | Account-scoped paper state, risk decisions, audit records, and protected read-only history exist; no autonomous loop, order execution, or broker connection                                       | Intraday data and loop, position reconciliation, paper orders, broker integration                                        |
 
 </details>
 
@@ -149,9 +152,15 @@ unit tests and container-only integration tests cannot fully reproduce.
 <details>
 <summary><b>Recommended next work</b></summary>
 
-1. **Market data DB cutover:** daily bars, projections, and summaries now write to
-   the app DB or `DATA_DIR/market_bars.sqlite`; the dashboard, API, and backtests read only durable storage. Run and verify the legacy snapshot backfill in each environment, compare representative dates, then retire the old snapshot files. Runtime reads no longer fall back to CSV; RSI price history uses provider candles, then `market_bars`.
-2. **Projection validation:** the weekday post-close workflow preserves a
+1. **Customer-ready hosted pilot:** choose and provision the hosting, managed
+   database, ingress, email, and monitoring providers. Deploy the product and
+   complete the [external staging execution TODO](DEPLOYMENT.md#external-staging-execution-todo),
+   including real account, market-data, alert-delivery, backup/restore, and
+   monitoring checks. Verify the legacy market snapshot backfill only in an
+   environment that actually has legacy data. This milestone needs environments
+   and provider access that have not yet been set up; repository tests alone
+   cannot establish customer readiness.
+2. **Projection validation (in parallel):** the weekday post-close workflow preserves a
    cumulative forward archive and its qualification report. Keep collecting exact
    target closes until `projection_baseline.py assess` passes and the workflow
    emits a hashed observed baseline. New snapshots retain quote-session
@@ -166,11 +175,12 @@ unit tests and container-only integration tests cannot fully reproduce.
    Keep this prospective cohort separate from imported historical projections;
    see [the frozen forward protocol](FORWARD_FORECASTS.md).
    The first [ridge return shadow candidate](SHADOW_MODEL.md) is implemented with a frozen offline artifact. Its retrospective error improvement is below the 5% review floor; fresh paired prospective evidence is pending and the active heuristic is unchanged.
-3. **External staging sign-off:** in parallel, complete the ordered
-   [external staging execution TODO](DEPLOYMENT.md#external-staging-execution-todo)
-   against the chosen managed PostgreSQL, ingress, monitoring, and
-   transactional-email providers. This is an operator-owned release gate requiring
-   credentials/evidence, not unfinished repository automation.
+3. **Autonomous paper trading (next product capability):** build the intraday
+   market-data, decision, risk, simulated-order, position, and audit path in the
+   hosted product. Use local replay to test failures and reproduce decisions,
+   then verify the complete loop with a permitted provider and simulated accounts
+   in the hosted environment. See
+   [Autonomous trading milestones](#autonomous-trading-milestones).
 4. **Alert depth:** extend beyond RSI and shallow compounds (more indicators,
    nested rules); consider SMS/push only after hosted email is proven reliable.
 5. **Dashboard quality:** code-split routes, run accessibility/performance audits,
@@ -203,7 +213,10 @@ section records the intended order of work. It is a plan, not an implementation 
 <details>
 <summary><b>Proposed phases</b></summary>
 
-1. **Finish the market data database cutover** (see Recommended next work). Live quotes need a durable shared store first, and the retired CSV path is already gone, so no second legacy data path remains.
+1. **Use the durable market store.** Daily bars, projections, and summaries
+   already write to the app database or `DATA_DIR/market_bars.sqlite`; runtime
+   reads no longer fall back to CSV. Verify legacy backfill separately when each
+   hosted environment is available.
 2. **Choose and validate a live-quote provider.** Confirm that the chosen plan
    allows the needed symbol count, update rate, and redistribution to end users.
    Open question: whether the current Finnhub plan is sufficient or another
@@ -229,8 +242,9 @@ section records the intended order of work. It is a plan, not an implementation 
 <details>
 <summary><b>Not in scope for this roadmap</b></summary>
 
-- Automated trading and broker execution (see Explicitly deferred). It would depend
-  on this work but needs its own risk, compliance, and audit design.
+- Autonomous trading and broker execution (see
+  [Autonomous trading milestones](#autonomous-trading-milestones)). They depend on
+  reliable market data and need a separate risk, execution, and audit design.
 - Changing projection or confidence scoring. Projections stay batch-based and
   evidence-led.
 
@@ -238,17 +252,66 @@ section records the intended order of work. It is a plan, not an implementation 
 
 </details>
 
+<a id="autonomous-trading-milestones"></a>
+<details open>
+<summary><b>Autonomous trading milestones</b></summary>
+
+**Status: account-scoped risk checks and history implemented; autonomous loop not implemented.**
+The goal is a system that monitors, analyzes, decides, and eventually trades on
+a user's behalf more than once per day. Existing daily projections can inform a
+decision but are not, by themselves, validated trade signals. This loop must
+not depend on an AI-generated summary or an unqualified projection being available.
+
+1. **Intraday market data.** Choose a provider whose plan permits the required
+   update rate, symbol count, and hosted use. Ingest timestamped quotes into the
+   shared store, detect stale or missing data, and respect market hours. Save
+   enough events to replay decisions and test failures during development.
+2. **Hosted autonomous paper-trading loop.** Run an orchestrator repeatedly
+   during market hours. Strategy agents or deterministic strategies analyze
+   current and saved data and emit structured proposals with
+   evidence, uncertainty, and versioned inputs. A portfolio decision component
+   combines proposals with positions and user settings. An independent,
+   deterministic risk gate checks data freshness, buying power, exposure and
+   loss limits, duplicate orders, and a kill switch. Simulate accepted orders,
+   reconcile fills and positions, and persist every proposal, rejection, order,
+   fill, and reason. Exercise the logic with local replay, then verify the same
+   path end to end in a hosted environment with a permitted intraday provider
+   and simulated accounts. Risk checks now read account-scoped paper state and
+   persist decisions, with a protected read-only history API. New accounts are
+   disabled by default, and no order service or position reconciliation exists
+   yet. No real order is sent in this milestone.
+3. **Evaluate the paper system.** Measure outcomes after costs and slippage,
+   compare against simple baselines, and test failure cases such as feed loss,
+   retries, restarts, duplicate events, and risk-limit breaches. Keep strategy
+   versions and results reproducible. Promote a strategy only after predefined
+   evidence and operational criteria are met.
+4. **Broker sandbox.** Add one broker adapter behind the same order and risk
+   boundaries. Test authorization, idempotent submission, partial fills,
+   cancellations, broker reconciliation, and recovery from ambiguous outcomes.
+   Confirm provider, security, and applicable regulatory requirements before
+   production use.
+5. **Limited live execution.** Enable only through explicit user authorization
+   and bounded account-level limits, with monitoring, alerts, a kill switch, and
+   an auditable record of decisions and broker outcomes. Expand frequency,
+   symbols, and capital only after live operational evidence supports it.
+
+The strategy agent may propose an action; it cannot bypass the risk gate or
+submit directly to a broker. Replay is a test method, not a customer-facing
+milestone or evidence that the hosted product is ready. Each phase needs tests
+and recorded evidence before the next phase begins.
+
+</details>
+
 <a id="explicitly-deferred"></a>
 <details>
 <summary><b>Explicitly deferred</b></summary>
 
-| Item                               | Reason                                                                                   |
-| ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| Automated trading                  | Requires separate intraday orchestration plus risk, compliance, broker, and audit design |
-| Nested compound / extra indicators | RSI + shallow AND/OR cover the first technical slice; deeper nesting deferred            |
-| SMS and push notifications         | Email/webhook production operation should be proven first                                |
-| International exchanges            | Current screening is centered on S&P 500 and NASDAQ-100                                  |
-| ML/fundamental/news projections    | Current projection engine is intentionally heuristic                                     |
+| Item                               | Reason                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------- |
+| Nested compound / extra indicators | RSI + shallow AND/OR cover the first technical slice; deeper nesting deferred |
+| SMS and push notifications         | Email/webhook production operation should be proven first                     |
+| International exchanges            | Current screening is centered on S&P 500 and NASDAQ-100                       |
+| ML/fundamental/news projections    | Current projection engine is intentionally heuristic                          |
 
 </details>
 

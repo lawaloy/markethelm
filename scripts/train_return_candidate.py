@@ -11,9 +11,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
 
-try:
+if __package__:
     from scripts import _repo_path
-except ImportError:
+else:
+    # Running by file path starts with scripts/ on sys.path. Import the local
+    # bootstrap before Python can cache an unrelated installed scripts namespace.
     import _repo_path
 
 from scripts.projection_baseline import _input_manifest, _snapshot_inputs

@@ -231,7 +231,7 @@ def test_migration_eight_upgrades_without_backfilling_old_mutable_projections(
             conn.execute("SELECT version FROM schema_migrations ORDER BY version DESC").fetchone()[
                 "version"
             ]
-            == 9
+            == database.LATEST_SCHEMA_VERSION
         )
     assert ledger_snapshot(data_dir=None)["forecast_cases"] == []
 

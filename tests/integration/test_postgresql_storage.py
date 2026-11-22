@@ -6,6 +6,7 @@ import os
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from urllib.parse import quote
 
 import psycopg
@@ -30,6 +31,11 @@ from src.storage.forecast_ledger import ledger_connection, ledger_snapshot, reco
 from src.storage.health import latest_worker_heartbeat, record_worker_heartbeat
 from src.storage.market_bars import list_market_bar_dates, upsert_market_bars
 from src.storage.market_refresh import claim_run, finish_run, load_state
+from src.storage.paper_trading import (
+    DuplicateProposal,
+    list_paper_risk_decisions,
+    record_paper_risk_decision,
+)
 from src.storage.projections_store import (
     list_projection_dates,
     load_daily_summary,
@@ -45,9 +51,57 @@ from src.storage.users import (
     delete_user_account,
     get_user_by_id,
 )
+from src.trading.risk import TradeProposal
 from tests.helpers.forecasts import LATER, NOW, outcome, projection, stock
 
 pytestmark = pytest.mark.integration
+
+
+def test_postgresql_paper_decisions_are_tenant_scoped_and_disabled_by_default(
+    postgresql_database,
+):
+    init_database()
+    first = create_user("paper-pg-one@example.com", "password123")
+    second = create_user("paper-pg-two@example.com", "password123")
+    proposal = TradeProposal(
+        proposal_id="signal-1",
+        symbol="AAPL",
+        side="BUY",
+        quantity=Decimal("1"),
+        reference_price=Decimal("50"),
+        quote_at=NOW,
+        strategy_version="test-v1",
+    )
+    initial = record_paper_risk_decision(first["id"], proposal, market_open=True, now=NOW)
+    assert not initial.approved
+    assert "trading_disabled" in initial.reasons
+    with get_connection() as conn:
+        conn.execute(
+            """UPDATE paper_accounts
+               SET cash = '200', portfolio_verified_at = ?,
+                   trading_enabled = 1, kill_switch = 0
+               WHERE user_id = ?""",
+            (NOW.isoformat(), first["id"]),
+        )
+    next_proposal = TradeProposal(
+        proposal_id="signal-2",
+        symbol=proposal.symbol,
+        side=proposal.side,
+        quantity=proposal.quantity,
+        reference_price=proposal.reference_price,
+        quote_at=proposal.quote_at,
+        strategy_version=proposal.strategy_version,
+    )
+    assert record_paper_risk_decision(
+        first["id"], next_proposal, market_open=True, now=NOW
+    ).approved
+    assert not record_paper_risk_decision(
+        second["id"], next_proposal, market_open=True, now=NOW
+    ).approved
+    assert len(list_paper_risk_decisions(first["id"])) == 2
+    assert len(list_paper_risk_decisions(second["id"])) == 1
+    with pytest.raises(DuplicateProposal):
+        record_paper_risk_decision(first["id"], next_proposal, market_open=True, now=NOW)
 
 
 @pytest.fixture()
