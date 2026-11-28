@@ -17,15 +17,15 @@
     "jspdf": "^4.2.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-router": "8.5.2",
+    "react-router": "8.5.3",
     "recharts": "^3.11.1"
   },
   "devDependencies": {
     "@emnapi/core": "1.11.3",
     "@emnapi/runtime": "1.11.3",
     "@testing-library/react": "^16.3.2",
-    "@types/node": "^26.6.6",
-    "@types/react": "^19.3.0",
+    "@types/node": "^26.6.10",
+    "@types/react": "^19.3.2",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
     "autoprefixer": "^10.7.0",
@@ -35,7 +35,7 @@
     "tailwindcss": "^4.1.18",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
-    "vitest": "^5.1.1"
+    "vitest": "^5.1.2"
   },
   "scripts": {
     "dev": "vite",
